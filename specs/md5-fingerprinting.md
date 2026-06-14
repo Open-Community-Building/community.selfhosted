@@ -5,7 +5,7 @@
 Compute MD5 checksums for every photo in a project to enable duplicate detection and data integrity verification across systems.
 
 ## Definitions
-
+git 
 - **Fingerprint**: The MD5 hash of a file's contents.
 - **Fingerprint index**: A JSON file (`md5.json`) mapping file paths to their metadata and checksums.
 
