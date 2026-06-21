@@ -19,6 +19,8 @@ for folder in [f for f in photo_target_folder.iterdir() if not f.name.startswith
     photo_projects[folder.name]['processed_md5'] = md5_file
     stats_file = photo_projects[folder.name]['processed_folder'] / 'stats.json'
     photo_projects[folder.name]['processed_stats'] = stats_file
+    metadata_file = photo_projects[folder.name]['processed_folder'] / 'metadata.json'
+    photo_projects[folder.name]['processed_metadata'] = metadata_file
 
 if __name__ == "__main__":
     pprint(photo_projects)
