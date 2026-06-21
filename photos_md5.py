@@ -10,6 +10,7 @@ def md5(path):
 
 def process(project):
     if os.path.exists(project['processed_md5']):
+        print("Ignoring project %s, because result file already exists: %s" % (project['id'], project['processed_md5']))
         return
     result = {}
     for directory, _, files in os.walk(project['fetched_folder']):
@@ -32,3 +33,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+

@@ -11,6 +11,7 @@ def human_readable_size(size_bytes):
 
 def stats(project):
     if os.path.exists(project['processed_stats']):
+        print("Ignoring project %s, because result file already exists: %s" % (project['id'], project['processed_stats']))
         return
     md5 = json.loads(open(project['processed_md5'], 'r').read())
     result = {}
