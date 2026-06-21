@@ -4,14 +4,6 @@ A photo inventory system for securing photos across multiple systems.
 
 Built using **Spec Driven Development (SDD)** — specifications are written first, implementation follows from specs.
 
-## Specs
-
-| Spec | Status | Description |
-|------|--------|-------------|
-| [Photo Discovery](specs/photo-discovery.md) | Draft | Discover and catalog photo projects from configured sources |
-| [MD5 Fingerprinting](specs/md5-fingerprinting.md) | Draft | Compute and store MD5 checksums for duplicate detection |
-| [Stats](specs/stats.md) | Draft | Generate per-project and cross-project statistics |
-
 ## What is SDD?
 
 Spec Driven Development puts specifications at the center of the development workflow:
@@ -23,12 +15,26 @@ Spec Driven Development puts specifications at the center of the development wor
 
 Specs live in the `specs/` directory and are the source of truth for system behavior.
 
+## Specs
+
+| Spec                                               | Status  | Description                                              |
+|----------------------------------------------------|---------|----------------------------------------------------------|
+| [Configure Projects](specs/configure-projects.md)  | Draft   | Configure projects that have their own pipeline          |
+| [Device Dump](specs/ios_file_stat.md)              | Draft   | Dump contents of devices, external storage and the cloud |
+| [Photo Registry](specs/photo-registry.md)          | Draft   | Register Photos                                          |
+| [MD5 Fingerprinting](specs/md5-fingerprinting)     | Draft   | Compute and store MD5 checksums for duplicate detection  |
+| [Stats](specs/stats.md)                            | Draft   | Generate per-project and cross-project statistics        |
+
+
 ## Project Structure
 
 ```
 community.selfhosted/
 ├── specs/              # Specifications (source of truth)
-├── config.py           # Project discovery and configuration
+├── config.py           # Project configuration
+├── photos_dump.py      # Dump photos from devices, external storage and cloud servers
+├── photos_md5.py       # MD5 fingerprinting pipeline
+├── photos_metadata.py  # MD5 fingerprinting pipeline
 ├── photos_md5.py       # MD5 fingerprinting pipeline
 └── photos_stats.py     # Statistics generation
 ```
