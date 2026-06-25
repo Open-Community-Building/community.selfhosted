@@ -12,32 +12,32 @@ Generate statistics for each photo project to provide an overview of the invento
 
 ### Processing
 
-1. For each photo project, check if `stats.json` already exists in the processed directory.
-2. If `stats.json` exists, skip the project (already processed).
-3. If not, read the project's `md5.json` fingerprint index.
-4. Compute statistics and write them to `stats.json`.
+1. For each photo project that has a [Source Manifest](source-manifest.md)
+   (`photos_manifest/manifest.sqlite`), read it.
+2. Compute the statistics from the manifest's `items` table and (re)write them to
+   `stats.json`.
 
 ### Computed Statistics
 
 | Stat | Description |
 |------|-------------|
-| `total` | Total number of files in the fingerprint index |
-| `total_size` | Sum of all file sizes in bytes |
+| `total` | Total number of items in the manifest |
+| `total_size` | Sum of all item sizes in bytes |
 | `total_size_human` | Human-readable representation of `total_size` (e.g., `"1.2 GB"`) |
 | `types` | Object mapping lowercase file extensions to their count |
 
 ### Total Size
 
-1. Sum the `size` field of every entry in the fingerprint index.
+1. Sum the `size` of every item in the manifest.
 2. Store the raw byte count as `total_size`.
 3. Convert to a human-readable string as `total_size_human` using binary units: B, KB, MB, GB, TB. Use one decimal place (e.g., `"1.2 GB"`, `"843.5 MB"`). Use the largest unit where the value is >= 1.
 
 ### File Type Breakdown
 
-1. For each file in the fingerprint index, extract the file extension from the filename.
-2. Normalize the extension to lowercase (e.g., `.JPG` becomes `.jpg`).
-3. Files with no extension are counted under the key `""` (empty string).
-4. Produce an object mapping each extension to its count, sorted by key.
+1. For each item in the manifest, read its `ext` feature — the file extension,
+   already normalised to lowercase at manifest time (e.g., `.JPG` → `.jpg`).
+2. Items with no extension carry `ext` `""` and are counted under the key `""`.
+3. Produce an object mapping each extension to its count, sorted by key.
 
 ### Output Format
 
@@ -56,22 +56,22 @@ Generate statistics for each photo project to provide an overview of the invento
 
 ## Inputs
 
-- A project's `md5.json` fingerprint index (must exist before stats can be generated).
+- A project's [Source Manifest](source-manifest.md) (`photos_manifest/manifest.sqlite`) — must exist before stats can be generated.
 
 ## Outputs
 
-- `<processed_folder>/stats.json` — statistics for the project.
+- `<project_folder>/photos_stats/stats.json` — statistics for the project.
 
 ## Constraints
 
-- Stats depend on MD5 fingerprinting — `md5.json` must exist before stats can run.
-- Processing is idempotent — if `stats.json` exists, the project is skipped entirely.
+- Stats depend on the [Source Manifest](source-manifest.md) — `manifest.sqlite` must exist before stats can run.
+- `stats.json` is recomputed from the current manifest on each run (a cheap SQL aggregation), so it always reflects the latest manifest.
 
 ## Open Questions
 
 - What additional statistics should be computed? Candidates:
   - ~~Total size in bytes~~ — implemented
   - ~~File type breakdown (by extension)~~ — implemented
-  - Duplicate count (files sharing the same MD5)
-  - Date range (earliest/latest file, if EXIF is extracted)
+  - ~~Duplicate count (files sharing the same MD5)~~ — now trivial from the manifest (`GROUP BY fingerprint`)
+  - Date range (earliest/latest), from the manifest's `mtime` feature
 - Should cross-project aggregate stats be generated?

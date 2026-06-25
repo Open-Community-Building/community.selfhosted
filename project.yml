@@ -26,6 +26,7 @@ workflows:
   photos:
     - ensure_dirs
     - md5
+    - manifest
     - metadata
     - stats
 
@@ -84,11 +85,21 @@ commands:
       - "config.cfg"
 
   - name: "stats"
-    help: "Summarise counts, total size and file-type breakdown per project (photos_stats/stats.json). Run `md5` first."
+    help: "Summarise counts, total size and file-type breakdown per project (photos_stats/stats.json). Run `manifest` first."
     script:
       - "${vars.python} photos_stats.py"
     deps:
       - "photos_stats.py"
+      - "project_registry.py"
+      - "config.cfg"
+
+  - name: "manifest"
+    help: "Build the Source Manifest (locator + MD5 fingerprint + features per file) for each photo project → photos_manifest/manifest.sqlite. See specs/source-manifest.md."
+    script:
+      - "${vars.python} photos_manifest.py"
+    deps:
+      - "photos_manifest.py"
+      - "manifest.py"
       - "project_registry.py"
       - "config.cfg"
 

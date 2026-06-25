@@ -1,9 +1,12 @@
 import json
-import os
+import sqlite3
 
 from project_registry import load_projects
 
 projects = load_projects()
+
+PHOTO_SOURCES = ["Google Takeout", "AndroidPhotoBackup", "IPad", "IPhone"]
+
 
 def human_readable_size(size_bytes):
     for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
@@ -11,34 +14,38 @@ def human_readable_size(size_bytes):
             return f"{size_bytes:.1f} {unit}"
         size_bytes /= 1024
 
-def stats(project, md5):
+
+def stats(project, db_path):
+    """Compute project statistics from the Source Manifest (see specs/stats.md)."""
     output_file = project['project_folder'] / 'photos_stats' / 'stats.json'
-    if os.path.exists(output_file):
-        print("Sampling instead of running the whole process")
-        output_file = project['project_folder'] / 'photos_stats' / 'stats.sample.json'
-    result = {}
-    result['total'] = len(md5)
-    total_size = sum(entry['size'] for entry in md5.values())
-    result['total_size'] = total_size
-    result['total_size_human'] = human_readable_size(total_size)
-    types = {}
-    for entry in md5.values():
-        ext = os.path.splitext(entry['name'])[1].lower()
-        types[ext] = types.get(ext, 0) + 1
-    result['types'] = dict(sorted(types.items()))
+    db = sqlite3.connect(db_path)
+    total, total_size = db.execute(
+        "SELECT COUNT(*), COALESCE(SUM(size), 0) FROM items").fetchone()
+    types = dict(db.execute(
+        "SELECT COALESCE(json_extract(features, '$.ext'), '') AS ext, COUNT(*) "
+        "FROM items GROUP BY ext"))
+    db.close()
+
+    result = {
+        'total': total,
+        'total_size': total_size,
+        'total_size_human': human_readable_size(total_size),
+        'types': dict(sorted(types.items())),
+    }
+    output_file.parent.mkdir(parents=True, exist_ok=True)
     json.dump(result, open(output_file, 'w'), indent=4, ensure_ascii=False, sort_keys=True)
+    print(f"{project['id']}: {total} items, {result['total_size_human']} -> {output_file}")
+
 
 def main():
     for projectid in projects.keys():
         project = projects[projectid]
-        if project["source"] not in ["Google Takeout", "AndroidPhotoBackup", "IPad", "IPhone"]:
+        if project["source"] not in PHOTO_SOURCES:
             continue
-        md5_path = project['project_folder'] / 'photos_md5' / 'md5.json'
-        if os.path.exists(md5_path):
-            md5 = json.loads(open(md5_path, 'r').read())
-        else:
-            continue
-        stats(project, md5)
+        db_path = project['project_folder'] / 'photos_manifest' / 'manifest.sqlite'
+        if db_path.exists():
+            stats(project, db_path)
+
 
 if __name__ == "__main__":
     main()
