@@ -1,0 +1,65 @@
+prompts:
+  cmd: python -m weasel run prompts
+  script:
+    - python prompt_sqlite.py
+  deps:
+    - path: prompt_sqlite.py
+      md5: b321c8abebb2ce87a4ce85620d877278
+    - path: project_registry.py
+      md5: 2e06ae4ff9e7a87210fdf3bdcc2a4f05
+    - path: config.cfg
+      md5: 218b9090c596d20368c68201407fabd4
+  outs: []
+resolve-config:
+  cmd: python -m weasel run resolve-config
+  script:
+    - python project_registry.py
+  deps:
+    - path: project_registry.py
+      md5: 2e06ae4ff9e7a87210fdf3bdcc2a4f05
+    - path: config.cfg
+      md5: 218b9090c596d20368c68201407fabd4
+  outs: []
+ensure-dirs:
+  cmd: python -m weasel run ensure-dirs
+  script:
+    - python -c "import project_registry as r; r.ensure_dirs(r.load_projects()); print('ensured
+      fetched/ and processed/ for all projects')"
+  deps:
+    - path: project_registry.py
+      md5: 2e06ae4ff9e7a87210fdf3bdcc2a4f05
+    - path: config.cfg
+      md5: 218b9090c596d20368c68201407fabd4
+  outs: []
+device-info:
+  cmd: python -m weasel run device-info
+  script:
+    - python ios_identification.py
+  deps:
+    - path: ios_identification.py
+      md5: 6a7138cb5ff36b6957258de688b59a1e
+  outs: []
+md5:
+  cmd: python -m weasel run md5
+  script:
+    - python photos_md5.py
+  deps:
+    - path: photos_md5.py
+      md5: 0927895056ebc560b7f6ea82b58b826e
+    - path: project_registry.py
+      md5: 2e06ae4ff9e7a87210fdf3bdcc2a4f05
+    - path: config.cfg
+      md5: 218b9090c596d20368c68201407fabd4
+  outs: []
+metadata:
+  cmd: python -m weasel run metadata
+  script:
+    - python photos_metadata.py
+  deps:
+    - path: photos_metadata.py
+      md5: ab56c42c914c1722f01714b7f057e3e7
+    - path: project_registry.py
+      md5: 2e06ae4ff9e7a87210fdf3bdcc2a4f05
+    - path: config.cfg
+      md5: 218b9090c596d20368c68201407fabd4
+  outs: []

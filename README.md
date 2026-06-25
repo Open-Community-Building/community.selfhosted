@@ -1,6 +1,8 @@
 # community.selfhosted
 
-A photo inventory system for securing photos across multiple systems.
+A photo inventory system for securing photos across multiple systems — plus
+a companion tool that turns personal archives (Claude conversation exports) into
+SQLite for exploration in Datasette.
 
 Built using **Spec Driven Development (SDD)** — specifications are written first, implementation follows from specs.
 
@@ -17,39 +19,60 @@ Specs live in the `specs/` directory and are the source of truth for system beha
 
 ## Specs
 
-| Spec                                               | Status  | Description                                              |
-|----------------------------------------------------|---------|----------------------------------------------------------|
-| [Configure Projects](specs/configure-projects.md)  | Draft   | Configure projects that have their own pipeline          |
-| [Device Dump](specs/ios_file_stat.md)              | Draft   | Dump contents of devices, external storage and the cloud |
-| [Photo Registry](specs/photo-registry.md)          | Draft   | Register Photos                                          |
-| [MD5 Fingerprinting](specs/md5-fingerprinting)     | Draft   | Compute and store MD5 checksums for duplicate detection  |
-| [Stats](specs/stats.md)                            | Draft   | Generate per-project and cross-project statistics        |
-
+| Spec | Status | Description |
+|------|--------|-------------|
+| [Configure Projects](specs/configure_projects.md) | Draft | Declare project configuration in `config.cfg`, resolved by spaCy's config system |
+| [Device Dump](specs/ios_file_stat.md) | Draft | Dump file stats from devices, external storage and the cloud |
+| [Device Info](specs/ios_identification.md) | Draft | Report a connected iOS device's identity, firmware, battery and storage |
+| [Photo Registry](specs/photo-registry.md) | Draft | Discover and catalog photo projects from configured sources |
+| [MD5 Fingerprinting](specs/md5-fingerprinting.md) | Draft | Compute and store MD5 checksums for duplicate detection |
+| [Stats](specs/stats.md) | Draft | Generate per-project and cross-project statistics |
 
 ## Project Structure
 
 ```
 community.selfhosted/
-├── specs/              # Specifications (source of truth)
-├── config.py           # Project configuration
-├── photos_dump.py      # Dump photos from devices, external storage and cloud servers
-├── photos_md5.py       # MD5 fingerprinting pipeline
-├── photos_metadata.py  # MD5 fingerprinting pipeline
-├── photos_md5.py       # MD5 fingerprinting pipeline
-└── photos_stats.py     # Statistics generation
+├── specs/                # Specifications — source of truth
+│
+├── project.yml           # Weasel / spaCy-projects workflow: commands + the `photos` pipeline
+├── config.cfg            # Declarative configuration (projects root), resolved by spaCy's config system
+├── project_registry.py   # Registered project discovery + load_projects() / ensure_dirs() (used by every script)
+│
+│                         # Photo inventory pipeline (runs over every configured project)
+├── photos_md5.py         # MD5 + size fingerprinting        → md5.json
+├── photos_metadata.py    # Attach Google Takeout metadata   → metadata.json
+├── photos_stats.py       # Counts / sizes / type breakdown  → stats.json
+│
+│                         # iOS device acquisition (pymobiledevice3, over USB)
+├── ios_identification.py # Print device identity / battery / disk
+├── ios_file_stat.py      # AFC-walk a device                → dump/pymobiledevice3_files.json
+│
+│                         # Archive → SQLite (for Datasette)
+└── prompt_sqlite.py      # Claude conversations.json        → SQLite
 ```
 
 ## Getting Started
 
-Photo projects are stored under `~/selfhosted/photos/projects/`. Each project folder contains a `config.json` describing the source.
+Photo projects live under `~/selfhosted/photos/projects/`; each folder has a
+`config.json` describing its source. The projects root is declared in
+[`config.cfg`](config.cfg) and resolved through spaCy's config system — see
+[Configure Projects](specs/configure_projects.md).
 
 ```bash
-# List discovered projects
-python config.py
+source ~/selfhosted/.venv/bin/activate
+cd ~/selfhosted/community.selfhosted
 
-# Compute MD5 checksums for all projects
-python photos_md5.py
+# Run the whole photo pipeline (ensure-dirs → md5 → metadata → stats):
+weasel run photos
 
-# Generate statistics
-python photos_stats.py
+# …or run any single command — `weasel run <name>` and `spacy project run <name>`
+# are equivalent:
+spacy project run resolve-config  # discover & print the configured projects
+spacy project run ensure-dirs     # create each project's fetched/ & processed/ dirs
+spacy project run device-info     # print a connected iOS device's identity, battery, disk
+spacy project run device-files    # dump file stats from a connected iOS device (AFC)
+spacy project run md5             # MD5 + size fingerprint every fetched file
+spacy project run metadata        # attach Google Takeout metadata (run after md5)
+spacy project run stats           # counts / sizes / type breakdown (run after md5)
+spacy project run prompts         # Claude conversations.json → SQLite for Datasette
 ```

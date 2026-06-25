@@ -1,0 +1,102 @@
+title: "community.selfhosted — photo inventory & archive pipelines"
+description: >
+  Spec-driven (SDD) tools for securing photos and personal archives across
+  devices, external storage and the cloud, then exploring them in Datasette.
+  Photo "projects" are discovered from `~/selfhosted/photos/projects/*/config.json`;
+  each stage reads/writes JSON inside that project's folder. Run a single stage with
+  `weasel run <command>` (or `spacy project run <command>`), or the processing
+  pipeline with `weasel run photos`.
+
+# Variables can be referenced anywhere below as ${vars.var_name}.
+vars:
+  # Use the interpreter on PATH (activate the shared venv first:
+  # `source ~/selfhosted/.venv/bin/activate`).
+  python: "python"
+
+# Directories weasel guarantees exist before running commands.
+directories: ["specs"]
+
+# NOTE: there are no in-repo data assets to fetch — inputs live outside the repo
+# (per-project folders under ~/selfhosted/photos, Takeout exports on external
+# volumes), so the `assets` block is intentionally omitted.
+
+# Workflows are ordered sequences of the commands defined below.
+workflows:
+  # End-to-end processing of already-fetched photo files.
+  photos:
+    - ensure-dirs
+    - md5
+    - metadata
+    - stats
+
+# Project commands. Trigger any of them with `weasel run <name>`.
+# Commands have no static `outputs` because each writes per-project files whose
+# paths depend on which projects are configured, so they always run when invoked.
+commands:
+  - name: "resolve-config"
+    help: "Resolve config.cfg through spaCy's config system and print the discovered project registry."
+    script:
+      - "${vars.python} project_registry.py"
+    deps:
+      - "project_registry.py"
+      - "config.cfg"
+
+  - name: "ensure-dirs"
+    help: "Create each project's fetched/ and processed/ directories. Explicit side-effect step — config resolution itself never creates directories."
+    script:
+      - "${vars.python} -c \"import project_registry as r; r.ensure_dirs(r.load_projects()); print('ensured fetched/ and processed/ for all projects')\""
+    deps:
+      - "project_registry.py"
+      - "config.cfg"
+
+  - name: "device-info"
+    help: "Print identity (model, firmware, identifiers, battery, disk) of the iOS device connected over USB."
+    script:
+      - "${vars.python} ios_identification.py"
+    deps:
+      - "ios_identification.py"
+
+  - name: "device-files"
+    help: "Walk a connected iOS device over AFC and dump file stats to each project's dump/pymobiledevice3_files.json."
+    script:
+      - "${vars.python} ios_file_stat.py"
+    deps:
+      - "ios_file_stat.py"
+      - "project_registry.py"
+      - "config.cfg"
+
+  - name: "md5"
+    help: "Compute MD5 checksum + size for every fetched file in each project (photos_md5/md5.json)."
+    script:
+      - "${vars.python} photos_md5.py"
+    deps:
+      - "photos_md5.py"
+      - "project_registry.py"
+      - "config.cfg"
+
+  - name: "metadata"
+    help: "Attach Google Takeout supplemental metadata to each file (processed/metadata.json). Run `md5` first."
+    script:
+      - "${vars.python} photos_metadata.py"
+    deps:
+      - "photos_metadata.py"
+      - "project_registry.py"
+      - "config.cfg"
+
+  - name: "stats"
+    help: "Summarise counts, total size and file-type breakdown per project (photos_stats/stats.json). Run `md5` first."
+    script:
+      - "${vars.python} photos_stats.py"
+    deps:
+      - "photos_stats.py"
+      - "project_registry.py"
+      - "config.cfg"
+
+  - name: "prompts"
+    help: "Convert a Claude conversations.json export into conversations.sqlite for Datasette."
+    script:
+      - "${vars.python} prompt_sqlite.py"
+    deps:
+      - "prompt_sqlite.py"
+      - "project_registry.py"
+      - "config.cfg"
