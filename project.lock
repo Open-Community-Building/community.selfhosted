@@ -10,8 +10,8 @@ claude_prompts:
     - path: config.cfg
       md5: 218b9090c596d20368c68201407fabd4
   outs: []
-resolve-config:
-  cmd: python -m weasel run resolve-config
+resolve_config:
+  cmd: python -m weasel run resolve_config
   script:
     - python project_registry.py
   deps:
@@ -20,8 +20,8 @@ resolve-config:
     - path: config.cfg
       md5: 218b9090c596d20368c68201407fabd4
   outs: []
-ensure-dirs:
-  cmd: python -m weasel run ensure-dirs
+ensure_dirs:
+  cmd: python -m weasel run ensure_dirs
   script:
     - python -c "import project_registry as r; r.ensure_dirs(r.load_projects()); print('ensured
       fetched/ and processed/ for all projects')"
@@ -31,8 +31,8 @@ ensure-dirs:
     - path: config.cfg
       md5: 218b9090c596d20368c68201407fabd4
   outs: []
-device-info:
-  cmd: python -m weasel run device-info
+device_info:
+  cmd: python -m weasel run device_info
   script:
     - python ios_identification.py
   deps:

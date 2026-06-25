@@ -24,7 +24,7 @@ directories: ["specs"]
 workflows:
   # End-to-end processing of already-fetched photo files.
   photos:
-    - ensure-dirs
+    - ensure_dirs
     - md5
     - metadata
     - stats
@@ -33,7 +33,7 @@ workflows:
 # Commands have no static `outputs` because each writes per-project files whose
 # paths depend on which projects are configured, so they always run when invoked.
 commands:
-  - name: "resolve-config"
+  - name: "resolve_config"
     help: "Resolve config.cfg through spaCy's config system and print the discovered project registry."
     script:
       - "${vars.python} project_registry.py"
@@ -41,7 +41,7 @@ commands:
       - "project_registry.py"
       - "config.cfg"
 
-  - name: "ensure-dirs"
+  - name: "ensure_dirs"
     help: "Create each project's fetched/ and processed/ directories. Explicit side-effect step — config resolution itself never creates directories."
     script:
       - "${vars.python} -c \"import project_registry as r; r.ensure_dirs(r.load_projects()); print('ensured fetched/ and processed/ for all projects')\""
@@ -49,14 +49,14 @@ commands:
       - "project_registry.py"
       - "config.cfg"
 
-  - name: "device-info"
+  - name: "device_info"
     help: "Print identity (model, firmware, identifiers, battery, disk) of the iOS device connected over USB."
     script:
       - "${vars.python} ios_identification.py"
     deps:
       - "ios_identification.py"
 
-  - name: "device-files"
+  - name: "device_files"
     help: "Walk a connected iOS device over AFC and dump file stats to each project's dump/pymobiledevice3_files.json."
     script:
       - "${vars.python} ios_file_stat.py"

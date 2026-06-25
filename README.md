@@ -27,6 +27,7 @@ Specs live in the `specs/` directory and are the source of truth for system beha
 | [Photo Registry](specs/photo-registry.md) | Draft | Discover and catalog photo projects from configured sources |
 | [MD5 Fingerprinting](specs/md5-fingerprinting.md) | Draft | Compute and store MD5 checksums for duplicate detection |
 | [Stats](specs/stats.md) | Draft | Generate per-project and cross-project statistics |
+| [Source Manifest](specs/source-manifest.md) | Draft | Per-source index of every item — locator + MD5 fingerprint + features — for sampling, cross-source dedup, stats and parallelism |
 
 ## Project Structure
 
@@ -65,15 +66,15 @@ Photo projects live under `~/selfhosted/photos/projects/`; each folder has a
 source ~/selfhosted/.venv/bin/activate
 cd ~/selfhosted/community.selfhosted
 
-# Run the whole photo pipeline (ensure-dirs → md5 → metadata → stats):
+# Run the whole photo pipeline (ensure_dirs → md5 → metadata → stats):
 weasel run photos
 
 # …or run any single command — `weasel run <name>` and `spacy project run <name>`
 # are equivalent:
-spacy project run resolve-config  # discover & print the configured projects
-spacy project run ensure-dirs     # create each project's fetched/ & processed/ dirs
-spacy project run device-info     # print a connected iOS device's identity, battery, disk
-spacy project run device-files    # dump file stats from a connected iOS device (AFC)
+spacy project run resolve_config  # discover & print the configured projects
+spacy project run ensure_dirs     # create each project's fetched/ & processed/ dirs
+spacy project run device_info     # print a connected iOS device's identity, battery, disk
+spacy project run device_files    # dump file stats from a connected iOS device (AFC)
 spacy project run md5             # MD5 + size fingerprint every fetched file
 spacy project run metadata        # attach Google Takeout metadata (run after md5)
 spacy project run stats           # counts / sizes / type breakdown (run after md5)

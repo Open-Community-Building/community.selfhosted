@@ -89,7 +89,7 @@ replaces the hand-written `config.py` while preserving the project registry that
   touching call sites.
 - Resolution is **side-effect free**: building the registry must not create
   directories. Creating each project's `fetched/` and `processed/` folders is the
-  explicit `ensure-dirs` command (`project_registry.ensure_dirs`), not a side
+  explicit `ensure_dirs` command (`project_registry.ensure_dirs`), not a side
   effect of import/resolution as the previous `config.py` did.
 - The resolved registry preserves the keys defined in
   [Photo Discovery](photo-registry.md) so existing stages keep working.
