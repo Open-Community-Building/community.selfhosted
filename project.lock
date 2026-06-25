@@ -1,9 +1,9 @@
-prompts:
-  cmd: python -m weasel run prompts
+claude_prompts:
+  cmd: python -m weasel run claude_prompts
   script:
-    - python prompt_sqlite.py
+    - python claude_prompts.py
   deps:
-    - path: prompt_sqlite.py
+    - path: claude_prompts.py
       md5: b321c8abebb2ce87a4ce85620d877278
     - path: project_registry.py
       md5: 2e06ae4ff9e7a87210fdf3bdcc2a4f05

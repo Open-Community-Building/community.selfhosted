@@ -48,7 +48,7 @@ community.selfhosted/
 ├── ios_file_stat.py      # AFC-walk a device                → dump/pymobiledevice3_files.json
 │
 │                         # Archive → SQLite (for Datasette)
-└── prompt_sqlite.py      # Claude conversations.json        → SQLite
+└── claude_prompts.py     # Claude conversations.json        → SQLite
 ```
 
 ## Getting Started
@@ -57,6 +57,9 @@ Photo projects live under `~/selfhosted/photos/projects/`; each folder has a
 `config.json` describing its source. The projects root is declared in
 [`config.cfg`](config.cfg) and resolved through spaCy's config system — see
 [Configure Projects](specs/configure_projects.md).
+
+> The `gmail_sqlite` command delegates to the companion **community.memex** package.
+> Install it into the same environment — `pip install -e ../community.memex`
 
 ```bash
 source ~/selfhosted/.venv/bin/activate
@@ -74,5 +77,6 @@ spacy project run device-files    # dump file stats from a connected iOS device 
 spacy project run md5             # MD5 + size fingerprint every fetched file
 spacy project run metadata        # attach Google Takeout metadata (run after md5)
 spacy project run stats           # counts / sizes / type breakdown (run after md5)
-spacy project run prompts         # Claude conversations.json → SQLite for Datasette
+spacy project run gmail_sqlite    # Google Takeout mbox → SQLite via `memex`
+spacy project run claude_prompts  # Claude conversations.json → SQLite for Datasette
 ```

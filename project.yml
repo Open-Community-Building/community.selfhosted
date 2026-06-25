@@ -92,11 +92,20 @@ commands:
       - "project_registry.py"
       - "config.cfg"
 
-  - name: "prompts"
+  - name: "gmail_sqlite"
+    help: "Convert a Google Takeout mbox to SQLite via the companion `memex` package."
+    script:
+      - "${vars.python} gmail_sqlite.py"
+    deps:
+      - "gmail_sqlite.py"
+      - "project_registry.py"
+      - "config.cfg"
+
+  - name: "claude_prompts"
     help: "Convert a Claude conversations.json export into conversations.sqlite for Datasette."
     script:
-      - "${vars.python} prompt_sqlite.py"
+      - "${vars.python} claude_prompts.py"
     deps:
-      - "prompt_sqlite.py"
+      - "claude_prompts.py"
       - "project_registry.py"
       - "config.cfg"

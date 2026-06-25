@@ -193,13 +193,14 @@ def insert_conversation(db: sqlite3.Connection, conv: dict) -> None:
 
 def run(project):
     conversations = project['project_folder'] / 'fetched' / 'conversations.json'
-    conversations_sqlite = project['project_folder'] / 'prompt_sqlite' / 'conversations.sqlite'
+    conversations_sqlite = project['project_folder'] / 'claude_prompts' / 'conversations.sqlite'
 
     print(f"Reading {conversations} ...")
     with conversations.open() as fh:
         data = json.load(fh)
     print(f"  {len(data)} conversations found.")
 
+    conversations_sqlite.parent.mkdir(parents=True, exist_ok=True)
     if conversations_sqlite.exists():
         conversations_sqlite.unlink()
 
