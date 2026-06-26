@@ -4,7 +4,7 @@ claude_prompts:
     - python claude_prompts.py
   deps:
     - path: claude_prompts.py
-      md5: b321c8abebb2ce87a4ce85620d877278
+      md5: fcf936446e1a3374c13f2d1bfa45bc44
     - path: project_registry.py
       md5: 2e06ae4ff9e7a87210fdf3bdcc2a4f05
     - path: config.cfg
@@ -58,6 +58,18 @@ metadata:
   deps:
     - path: photos_metadata.py
       md5: ab56c42c914c1722f01714b7f057e3e7
+    - path: project_registry.py
+      md5: 2e06ae4ff9e7a87210fdf3bdcc2a4f05
+    - path: config.cfg
+      md5: 218b9090c596d20368c68201407fabd4
+  outs: []
+git_logs:
+  cmd: python -m weasel run git_logs
+  script:
+    - python git_logs.py
+  deps:
+    - path: git_logs.py
+      md5: 75a67b4f656981cb20f5a64c2db156d3
     - path: project_registry.py
       md5: 2e06ae4ff9e7a87210fdf3bdcc2a4f05
     - path: config.cfg
