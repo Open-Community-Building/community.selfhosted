@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Fetch file stats from an iOS device suitable for exploration in Datasette.
+Fetch file stats from an iOS device.
 
 Usage:
     python3 ios_file_stat.py
@@ -17,8 +17,6 @@ from pymobiledevice3.services.afc import AfcService
 from project_registry import load_projects
 
 projects = load_projects()
-
-APPLE_EPOCH = 978307200  # 1970-01-01 -> 2001-01-01, for Core Data dates
 
 image_exts = (".heic", ".jpg", ".jpeg", ".png", ".dng", ".gif")
 movie_exts = (".mov", ".mp4", ".m4v")

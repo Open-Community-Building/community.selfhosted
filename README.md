@@ -19,16 +19,17 @@ Specs live in the `specs/` directory and are the source of truth for system beha
 
 ## Specs
 
-| Spec | Status | Description |
-|------|--------|-------------|
-| [Configure Projects](specs/configure_projects.md) | Draft | Declare project configuration in `config.cfg`, resolved by spaCy's config system |
-| [Device Dump](specs/ios_file_stat.md) | Draft | Dump file stats from devices, external storage and the cloud |
-| [Device Info](specs/ios_identification.md) | Draft | Report a connected iOS device's identity, firmware, battery and storage |
-| [Photo Registry](specs/photo-registry.md) | Draft | Discover and catalog photo projects from configured sources |
-| [MD5 Checksums](specs/md5-checksums.md) | Draft | Compute and store MD5 checksums for duplicate detection |
-| [Stats](specs/stats.md) | Draft | Generate per-project and cross-project statistics |
+| Spec | Status | Description                                                                                                              |
+|------|--------|--------------------------------------------------------------------------------------------------------------------------|
+| [Configure Projects](specs/configure_projects.md) | Draft | Declare project configuration in `config.cfg`, resolved by spaCy's config system                                         |
+| [Device Dump](specs/ios_file_stat.md) | Draft | Dump file stats from iOS devices                                                                                         |
+| [Device Info](specs/ios_identification.md) | Draft | Report a connected iOS device's identity, firmware, battery and storage                                                  |
+| [Photo Registry](specs/photo-registry.md) | Draft | Discover and catalog photo projects from configured sources                                                              |
+| [MD5 Checksums](specs/md5-checksums.md) | Draft | Compute and store MD5 checksums for duplicate detection                                                                  |
+| [Stats](specs/stats.md) | Draft | Generate per-project and cross-project statistics                                                                        |
 | [Source Manifest](specs/source-manifest.md) | Draft | Per-source index of every item — locator + checksum + features — for sampling, cross-source dedup, stats and parallelism |
-| [Fixity & Change Detection](specs/fixity.md) | Draft | Detect additions / losses / silent content changes across ingests by comparing checksums (fixity checking) |
+| [Git Logs](specs/git-logs.md) | Draft | Convert local git repositories' commit history (commits + file changes) to SQLite, keyed by repo |
+| [Fixity & Change Detection](specs/fixity.md) | Draft | Detect additions / losses / silent content changes across ingests by comparing checksums (fixity checking)               |
 
 ## Project Structure
 
@@ -82,4 +83,5 @@ spacy project run metadata        # attach Google Takeout metadata (run after md
 spacy project run stats           # counts / sizes / type breakdown (run after md5)
 spacy project run gmail_sqlite    # Google Takeout mbox → SQLite via `memex`
 spacy project run claude_prompts  # Claude conversations.json → SQLite for Datasette
+spacy project run git_logs        # git commit history → SQLite (append-only; flags history rewrites)
 ```

@@ -120,3 +120,12 @@ commands:
       - "claude_prompts.py"
       - "project_registry.py"
       - "config.cfg"
+
+  - name: "git_logs"
+    help: "Append an ingest of a `Git Logs` project's repositories' commit history to SQLite (git.sqlite), report any history rewrites (fixity), and print a per-day work-hours breakdown. See specs/git-logs.md."
+    script:
+      - "${vars.python} git_logs.py"
+    deps:
+      - "git_logs.py"
+      - "project_registry.py"
+      - "config.cfg"
