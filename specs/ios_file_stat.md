@@ -1,57 +1,68 @@
-# IOS File stat
+# Device Dump
 
 ## Purpose
 
-Connect iOS devices and stat the files rapidly
+Acquire a file-stat inventory of a connected iOS device over USB, so a device's
+contents can be catalogued and analysed — and later folded into the
+[Source Manifest](source-manifest.md) — without copying the files off the device.
 
 ## Definitions
 
-- **Checksum**: The MD5 hash of a file's contents.
-- **Checksum index**: A JSON file (`md5.json`) mapping file paths to their metadata and checksums.
+- **Device**: an iPhone or iPad connected over USB and paired/trusted.
+- **AFC** (Apple File Conduit): the `pymobiledevice3` service used to walk and
+  `stat` the device's filesystem over USB.
+- **Dump**: the output file `dump/pymobiledevice3_files.json` — a JSON object
+  mapping each device file path to its stats.
+- **Kind**: a coarse type derived from a file's extension — `image` (`.heic`,
+  `.jpg`, `.jpeg`, `.png`, `.dng`, `.gif`), `movie` (`.mov`, `.mp4`, `.m4v`), or
+  `other`.
 
 ## Behavior
 
-### Processing
+### Device selection
 
-1. For each photo project, check if `md5.json` already exists in the processed directory.
-2. If `md5.json` exists, skip the project (already processed).
-3. If not, walk the project's `fetched_folder` recursively.
-4. For each file (excluding `.DS_Store`):
-   - Read the file contents and compute the MD5 hash.
-   - Record the file's absolute path, filename, MD5 checksum, and file size in bytes.
-5. Write the complete checksum index to `md5.json`.
+1. Connect to the iOS device reachable over USB (usbmux / lockdown).
+2. Read the device's lockdown identity (`all_values`) and select the configured
+   project whose `source` is `IPhone` or `IPad` and whose `source_UniqueDeviceID`
+   matches the device's `UniqueDeviceID` — so the dump lands in the right project.
+3. If that project's dump file already exists, skip (idempotent — do not re-dump).
 
-### Output Format
+### Walk & stat
 
-`md5.json` is a JSON object keyed by absolute file path:
-
-```json
-{
-  "/path/to/photo.jpg": {
-    "path": "/path/to/photo.jpg",
-    "name": "photo.jpg",
-    "md5sum": "d41d8cd98f00b204e9800998ecf8427e",
-    "size": 1048576
-  }
-}
-```
+1. Walk the device filesystem recursively over AFC, starting at `/`.
+2. For each file, record:
+   - `path` — the full device path.
+   - `kind` — `image` / `movie` / `other`, by extension.
+   - `size` — `st_size`, in bytes.
+   - `ifmt` — `st_ifmt` (file mode / type flags).
+   - `mtime`, `birthtime` — from `st_mtime` / `st_birthtime`, as timestamps.
+3. Write the collected records to the dump file.
 
 ## Inputs
 
-- A photo project with a `fetched_folder` containing files.
+- A single iOS device connected over USB and trusted.
+- A project whose `source` is `IPhone` or `IPad` and whose `source_UniqueDeviceID`
+  matches the connected device.
 
 ## Outputs
 
-- `<processed_folder>/md5.json` — the checksum index for the project.
+- `<project>/dump/pymobiledevice3_files.json` — a JSON object keyed by device file
+  path; each value is `{path, kind, size, ifmt, mtime, birthtime}` (datetimes
+  written as ISO-8601, keys sorted, pretty-printed).
 
 ## Constraints
 
-- `.DS_Store` files are excluded.
-- Processing is idempotent — if `md5.json` exists, the project is skipped entirely.
-- The JSON output is pretty-printed with 4-space indent, sorted keys, and non-ASCII characters preserved.
+- **Read-only on the device** — files are walked and `stat`-ed, never modified or
+  copied off.
+- **Idempotent** — if the matched project's dump already exists, the run is skipped.
+- The device is matched to its project by `UniqueDeviceID`.
 
 ## Open Questions
 
-- Should re-processing be supported (e.g., when new files are added to a project)?
-- Should the hash algorithm be configurable (e.g., SHA-256 for stronger integrity guarantees)?
-- Should file type filtering go beyond `.DS_Store` exclusion?
+- Should the dump feed the [Source Manifest](source-manifest.md) directly — each
+  device file an item, `path` as the locator and `size`/`mtime`/`kind` as features?
+  AFC files can't be cheaply checksummed over USB, so this needs the
+  checksum-optional item the manifest spec raises.
+- The script writes JSON, but its stated aim ("exploration in Datasette") points at
+  SQLite — should it emit a manifest (SQLite) instead?
+- Should re-dumping be supported (currently an existing dump is skipped)?
