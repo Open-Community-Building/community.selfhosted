@@ -94,7 +94,7 @@ commands:
       - "config.cfg"
 
   - name: "manifest"
-    help: "Build the Source Manifest (locator + MD5 fingerprint + features per file) for each photo project → photos_manifest/manifest.sqlite. See specs/source-manifest.md."
+    help: "Append an ingest to the Source Manifest (locator + checksum + features per file) per photo project, and report fixity changes vs the previous ingest. See specs/source-manifest.md and specs/fixity.md."
     script:
       - "${vars.python} photos_manifest.py"
     deps:

@@ -27,7 +27,8 @@ Specs live in the `specs/` directory and are the source of truth for system beha
 | [Photo Registry](specs/photo-registry.md) | Draft | Discover and catalog photo projects from configured sources |
 | [MD5 Fingerprinting](specs/md5-fingerprinting.md) | Draft | Compute and store MD5 checksums for duplicate detection |
 | [Stats](specs/stats.md) | Draft | Generate per-project and cross-project statistics |
-| [Source Manifest](specs/source-manifest.md) | Draft | Per-source index of every item — locator + MD5 fingerprint + features — for sampling, cross-source dedup, stats and parallelism |
+| [Source Manifest](specs/source-manifest.md) | Draft | Per-source index of every item — locator + checksum + features — for sampling, cross-source dedup, stats and parallelism |
+| [Fixity & Change Detection](specs/fixity.md) | Draft | Detect additions / losses / silent content changes across ingests by comparing checksums (fixity checking) |
 
 ## Project Structure
 
@@ -76,7 +77,7 @@ spacy project run ensure_dirs     # create each project's fetched/ & processed/ 
 spacy project run device_info     # print a connected iOS device's identity, battery, disk
 spacy project run device_files    # dump file stats from a connected iOS device (AFC)
 spacy project run md5             # MD5 + size fingerprint every fetched file
-spacy project run manifest        # build the Source Manifest (locator + MD5 + features) per photo project
+spacy project run manifest        # ingest → Source Manifest (locator + checksum + features) + fixity report
 spacy project run metadata        # attach Google Takeout metadata (run after md5)
 spacy project run stats           # counts / sizes / type breakdown (run after md5)
 spacy project run gmail_sqlite    # Google Takeout mbox → SQLite via `memex`

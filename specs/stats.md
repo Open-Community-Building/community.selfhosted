@@ -72,6 +72,6 @@ Generate statistics for each photo project to provide an overview of the invento
 - What additional statistics should be computed? Candidates:
   - ~~Total size in bytes~~ — implemented
   - ~~File type breakdown (by extension)~~ — implemented
-  - ~~Duplicate count (files sharing the same MD5)~~ — now trivial from the manifest (`GROUP BY fingerprint`)
+  - ~~Duplicate count (files sharing the same MD5)~~ — now trivial from the manifest (`GROUP BY checksum`)
   - Date range (earliest/latest), from the manifest's `mtime` feature
 - Should cross-project aggregate stats be generated?

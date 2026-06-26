@@ -19,11 +19,13 @@ def stats(project, db_path):
     """Compute project statistics from the Source Manifest (see specs/stats.md)."""
     output_file = project['project_folder'] / 'photos_stats' / 'stats.json'
     db = sqlite3.connect(db_path)
+    # Scope to the latest ingest — the manifest is append-only (see specs/fixity.md).
+    latest = "ingest_id = (SELECT MAX(id) FROM ingests)"
     total, total_size = db.execute(
-        "SELECT COUNT(*), COALESCE(SUM(size), 0) FROM items").fetchone()
+        f"SELECT COUNT(*), COALESCE(SUM(size), 0) FROM items WHERE {latest}").fetchone()
     types = dict(db.execute(
         "SELECT COALESCE(json_extract(features, '$.ext'), '') AS ext, COUNT(*) "
-        "FROM items GROUP BY ext"))
+        f"FROM items WHERE {latest} GROUP BY ext"))
     db.close()
 
     result = {
