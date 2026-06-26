@@ -29,6 +29,10 @@ workflows:
     - manifest
     - metadata
     - stats
+  # Acquire new Claude exports from claude_ingest/, then convert the latest to SQLite.
+  claude:
+    - claude_ingest
+    - claude_prompts
 
 # Project commands. Trigger any of them with `weasel run <name>`.
 # Commands have no static `outputs` because each writes per-project files whose
@@ -112,8 +116,17 @@ commands:
       - "project_registry.py"
       - "config.cfg"
 
+  - name: "claude_ingest"
+    help: "Unpack new Claude export zips from each Prompts project's claude_ingest/ into UTC-named fetched/<ts>/ snapshots (only conversations.json). See specs/claude_ingest.md."
+    script:
+      - "${vars.python} claude_ingest.py"
+    deps:
+      - "claude_ingest.py"
+      - "project_registry.py"
+      - "config.cfg"
+
   - name: "claude_prompts"
-    help: "Convert a Claude conversations.json export into conversations.sqlite for Datasette."
+    help: "Convert the latest Claude snapshot (fetched/<ts>/conversations.json) into conversations.sqlite, recording the conversations.json SHA-256 provenance. See specs/claude_prompts.md."
     script:
       - "${vars.python} claude_prompts.py"
     deps:

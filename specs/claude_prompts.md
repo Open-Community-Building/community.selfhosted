@@ -13,10 +13,11 @@ export is detectable.
 - **Export**: a Claude data export — a zip whose filename embeds the export's
   generation time as a Unix epoch (`data-…-<epoch>-…-batch-0000.zip`), unpacking to
   `conversations.json` plus `users.json`, `memories.json`, `projects/`, etc.
-- **Snapshot**: one export kept immutably in its own folder under `fetched/`, named
-  for the export's **embedded epoch**. The epoch is the canonical temporal key: file
-  mtimes are copy-unstable, and the unpacked files' own mtimes are unreliable (they
-  carry the zip's 1980 epoch).
+- **Snapshot**: one export's `conversations.json` kept immutably under
+  `fetched/<YYYY-MM-DD-HH-MM>/`, the folder named for the export's **embedded epoch**
+  (UTC). Produced by [Claude Ingest](claude_ingest.md) from a raw download; the raw
+  zip itself stays in `claude_ingest/`. The epoch is the canonical temporal key (file
+  mtimes are copy-unstable).
 - **Checksum**: the SHA-256 of the `conversations.json` a build consumed — its
   provenance / fixity value, recorded in the database. Same algorithm as the
   [Source Manifest](source-manifest.md).
@@ -25,12 +26,11 @@ export is detectable.
 
 ### Snapshots
 
-1. Each Claude export is retained as an immutable snapshot folder under the project's
-   `fetched/`, named from the export's embedded epoch rendered `YYYY-MM-DD-HH-MM`
-   (UTC), so folders sort chronologically.
-2. Snapshots are never modified in place — a new export is a new folder; old exports
-   are kept. (Dedup of byte-identical exports and pruning are out of scope — see Open
-   Questions.)
+1. Snapshots are produced by [Claude Ingest](claude_ingest.md): a raw export dropped
+   in `claude_ingest/` becomes `fetched/<YYYY-MM-DD-HH-MM>/conversations.json`, the folder
+   named from the export's embedded epoch (UTC), so folders sort chronologically.
+2. Snapshots are immutable and hold only `conversations.json`; the raw zip stays in
+   `claude_ingest/`.
 
 ### Selection
 
@@ -50,8 +50,8 @@ export is detectable.
 
 1. The build records, in a one-row **`export`** table, which export the database came
    from: the snapshot name, the **SHA-256** and byte size of the consumed
-   `conversations.json`, its `algorithm`, the conversation count, the export's
-   embedded epoch (`exported_at`, when a zip is present), and the build time
+   `conversations.json`, its `algorithm`, the conversation count, the export time
+   (`exported_at`, derived from the snapshot's UTC name), and the build time
    (`imported_at`).
 2. This is the database's self-contained record of its source — enough to tell whether
    two databases came from the same export, and to notice a `conversations.json` that
@@ -78,8 +78,7 @@ export is detectable.
 
 ## Open Questions
 
-- Folder-name timezone: UTC (chosen — unambiguous, archival) vs local. The two
-  existing folders are local-mtime-derived and predate this convention.
+- Folder-name timezone: UTC (chosen — unambiguous, archival) vs local.
 - Dedup on arrival: skip creating a snapshot when an incoming export's
   `conversations.json` checksum matches an existing snapshot's? (Raised, deferred.)
 - Retention: keep every snapshot forever, or prune older ones once converted?

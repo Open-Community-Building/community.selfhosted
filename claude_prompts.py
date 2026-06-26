@@ -138,8 +138,13 @@ def _latest_snapshot(fetched):
 
 
 def _exported_at(snapshot):
-    """The export's generation time (UTC ISO) from the epoch in its zip filename, or None."""
-    for zip_path in snapshot.glob("*.zip"):
+    """The export's generation time (UTC ISO): from the snapshot's UTC name, else its zip, else None."""
+    try:
+        return datetime.strptime(snapshot.name, "%Y-%m-%d-%H-%M").replace(
+            tzinfo=timezone.utc).isoformat()
+    except ValueError:
+        pass
+    for zip_path in snapshot.glob("*.zip"):   # legacy: a zip kept alongside conversations.json
         m = _EPOCH_RE.search(zip_path.name)
         if m:
             return datetime.fromtimestamp(int(m.group(1)), tz=timezone.utc).isoformat()

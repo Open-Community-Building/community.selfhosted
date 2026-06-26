@@ -75,3 +75,15 @@ git_logs:
     - path: config.cfg
       md5: 218b9090c596d20368c68201407fabd4
   outs: []
+claude_ingest:
+  cmd: python -m weasel run claude_ingest
+  script:
+    - python claude_ingest.py
+  deps:
+    - path: claude_ingest.py
+      md5: 8a372253756b6f72c004148867dd7f4d
+    - path: project_registry.py
+      md5: 2e06ae4ff9e7a87210fdf3bdcc2a4f05
+    - path: config.cfg
+      md5: 218b9090c596d20368c68201407fabd4
+  outs: []
