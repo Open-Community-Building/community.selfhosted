@@ -6,8 +6,8 @@ Connect iOS devices and stat the files rapidly
 
 ## Definitions
 
-- **Fingerprint**: The MD5 hash of a file's contents.
-- **Fingerprint index**: A JSON file (`md5.json`) mapping file paths to their metadata and checksums.
+- **Checksum**: The MD5 hash of a file's contents.
+- **Checksum index**: A JSON file (`md5.json`) mapping file paths to their metadata and checksums.
 
 ## Behavior
 
@@ -19,7 +19,7 @@ Connect iOS devices and stat the files rapidly
 4. For each file (excluding `.DS_Store`):
    - Read the file contents and compute the MD5 hash.
    - Record the file's absolute path, filename, MD5 checksum, and file size in bytes.
-5. Write the complete fingerprint index to `md5.json`.
+5. Write the complete checksum index to `md5.json`.
 
 ### Output Format
 
@@ -42,7 +42,7 @@ Connect iOS devices and stat the files rapidly
 
 ## Outputs
 
-- `<processed_folder>/md5.json` — the fingerprint index for the project.
+- `<processed_folder>/md5.json` — the checksum index for the project.
 
 ## Constraints
 

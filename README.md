@@ -25,7 +25,7 @@ Specs live in the `specs/` directory and are the source of truth for system beha
 | [Device Dump](specs/ios_file_stat.md) | Draft | Dump file stats from devices, external storage and the cloud |
 | [Device Info](specs/ios_identification.md) | Draft | Report a connected iOS device's identity, firmware, battery and storage |
 | [Photo Registry](specs/photo-registry.md) | Draft | Discover and catalog photo projects from configured sources |
-| [MD5 Fingerprinting](specs/md5-fingerprinting.md) | Draft | Compute and store MD5 checksums for duplicate detection |
+| [MD5 Checksums](specs/md5-checksums.md) | Draft | Compute and store MD5 checksums for duplicate detection |
 | [Stats](specs/stats.md) | Draft | Generate per-project and cross-project statistics |
 | [Source Manifest](specs/source-manifest.md) | Draft | Per-source index of every item — locator + checksum + features — for sampling, cross-source dedup, stats and parallelism |
 | [Fixity & Change Detection](specs/fixity.md) | Draft | Detect additions / losses / silent content changes across ingests by comparing checksums (fixity checking) |
@@ -41,7 +41,7 @@ community.selfhosted/
 ├── project_registry.py   # Registered project discovery + load_projects() / ensure_dirs() (used by every script)
 │
 │                         # Photo inventory pipeline (runs over every configured project)
-├── photos_md5.py         # MD5 + size fingerprinting        → md5.json
+├── photos_md5.py         # MD5 + size checksums            → md5.json
 ├── photos_metadata.py    # Attach Google Takeout metadata   → metadata.json
 ├── photos_stats.py       # Counts / sizes / type breakdown  → stats.json
 │
@@ -76,7 +76,7 @@ spacy project run resolve_config  # discover & print the configured projects
 spacy project run ensure_dirs     # create each project's fetched/ & processed/ dirs
 spacy project run device_info     # print a connected iOS device's identity, battery, disk
 spacy project run device_files    # dump file stats from a connected iOS device (AFC)
-spacy project run md5             # MD5 + size fingerprint every fetched file
+spacy project run md5             # MD5 + size checksum every fetched file
 spacy project run manifest        # ingest → Source Manifest (locator + checksum + features) + fixity report
 spacy project run metadata        # attach Google Takeout metadata (run after md5)
 spacy project run stats           # counts / sizes / type breakdown (run after md5)
