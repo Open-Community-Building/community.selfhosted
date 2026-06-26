@@ -43,7 +43,9 @@ def process(project):
     db_path = project["project_folder"] / "photos_manifest" / "manifest.sqlite"
     ingest_id, n = manifest.build(db_path, iter_photo_items(folder), source=project["id"])
     print(f"{project['id']}: ingest {ingest_id}, {n} items -> {db_path}")
-    print(manifest.format_report(manifest.fixity_check(db_path)))
+    report = manifest.fixity_check(db_path)
+    manifest.record_events(db_path, report)   # append this ingest's events to the audit log
+    print(manifest.format_report(report))
 
 
 def main():

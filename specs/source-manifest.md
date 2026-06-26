@@ -112,9 +112,10 @@ per source.
 ## Constraints
 
 - Indexing is streaming, memory-bounded, read-only on the source, and deterministic.
-- `checksum` = the message digest (hex) of the item's content bytes; the
-  **`algorithm`** used is recorded alongside (BagIt/PREMIS convention), so the
-  digest stays interpretable and migratable. `size` (bytes) is stored too.
+- `checksum` = the message digest (hex) of the item's content bytes, using
+  **SHA-256** (the digital-preservation default); the **`algorithm`** is recorded
+  alongside (BagIt/PREMIS convention) so the digest stays interpretable and older
+  MD5 ingests can coexist. `size` (bytes) is stored too.
 - The **item iterator is the only per-source code**; the manifest, checksum and
   stats stages are generic across all sources.
 - The manifest indexes a source without duplicating its content; downstream features
@@ -132,9 +133,6 @@ per source.
   `locator_kind`, to keep one uniform schema across sources.)
 - Define the **canonical content** for checksumming non-file items (e.g. an email
   message — raw RFC822 bytes? normalised?) per source.
-- Algorithm: MD5 is adequate for accidental bit-rot, but SHA-256 is the
-  digital-preservation default — the `algorithm` column makes switching (or storing
-  multiple) possible later.
 - Should `kind` distinguish item vs sub-item explicitly (e.g. `message` vs
   `attachment`), and should sub-items reference the parent by `seq` or by locator?
 - Where does the generic implementation live — the manifest/checksum/stats stages

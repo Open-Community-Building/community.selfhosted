@@ -67,6 +67,7 @@ Photo projects live under `~/selfhosted/photos/projects/`; each folder has a
 ```bash
 source ~/selfhosted/.venv/bin/activate
 cd ~/selfhosted/community.selfhosted
+pip install -r requirements.txt   # first-time setup: sqlite-utils, spaCy/weasel, datasette, pymobiledevice3
 
 # Run the whole photo pipeline (ensure_dirs → md5 → metadata → stats):
 weasel run photos

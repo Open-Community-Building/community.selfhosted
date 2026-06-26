@@ -19,9 +19,13 @@ and dropped entries that a plain re-import would otherwise hide.
 - **Fixity check**: comparing a new ingest's manifest against the previous ingest
   of the same source and classifying each item.
 - **Fixity event**: the recorded outcome for an item across two ingests — one of
-  *added*, *unchanged*, *metadata change*, *fixity failure*, *dropped*, *loss*.
-- **Fixity failure**: same locator, *different* checksum — the content changed
-  (the bit-rot / silent re-encode signal).
+  *added*, *unchanged*, *metadata change*, *fixity failure*, *rehashed*, *dropped*,
+  *loss*.
+- **Fixity failure**: same locator, same algorithm, *different* checksum — the
+  content changed (the bit-rot / silent re-encode signal).
+- **Rehashed**: same locator, *different algorithm* between ingests (e.g. an
+  MD5 → SHA-256 migration) — integrity can't be judged by comparing checksums, so it
+  is reported as a migration, never as a fixity failure.
 - **Loss**: a checksum present in a prior ingest that appears under *no* locator in
   the new one — content that is simply gone (vs a **move**, where the same checksum
   reappears under a different locator).
@@ -44,16 +48,18 @@ Compare ingest *N* against the previous ingest of the same source, keyed by
 1. **added** — locator in *N*, absent before.
 2. **unchanged** — locator in both, same checksum (and algorithm).
 3. **metadata change** — same locator + checksum, different features (e.g. mtime, size).
-4. **fixity failure** — same locator, *different* checksum → content changed.
-5. **dropped** — locator present before, absent in *N*.
-6. For each dropped locator, resolve **loss vs move** by checksum: if the checksum
-   reappears under another locator in *N* it is a **move/rename**; if it appears
-   nowhere it is a **loss**.
+4. **fixity failure** — same locator, same algorithm, *different* checksum → content changed.
+5. **rehashed** — same locator, *different algorithm* (e.g. MD5 → SHA-256) → integrity
+   not comparable by checksum here; reported as a migration, not a failure.
+6. **dropped** — locator present before, absent in *N*.
+7. For each dropped locator, resolve **loss vs move** by checksum (within the same
+   algorithm): if the checksum reappears under another locator in *N* it is a
+   **move/rename**; if it appears nowhere it is a **loss**.
 
 ### Two lenses
 
 - by **locator** — *did this address's content change?* (added / metadata change /
-  fixity failure / dropped)
+  fixity failure / rehashed / dropped)
 - by **checksum** — *did this content disappear or move?* (loss vs move)
 
 ### Change report (the alert)
@@ -61,9 +67,12 @@ Compare ingest *N* against the previous ingest of the same source, keyed by
 1. Every ingest ends with a report: counts per class, and the full list of the
    **fixity failures** and **losses** for review. These must be surfaced — never
    silently swallowed.
-2. Optionally persist each outcome as a row in a `fixity_events` table
-   `(ingest_id, locator, class, old_checksum, new_checksum)` — an audit trail
-   queryable in Datasette.
+2. Each notable event is persisted as a row in a **`fixity_events`** audit table —
+   `(ingest_id, prev_ingest, locator, class, old_checksum, new_checksum)`, keyed by
+   `(ingest_id, locator)` — so the provenance log outlives the single two-ingest
+   comparison and is queryable in Datasette. Recording is idempotent per ingest;
+   `unchanged` (a no-op) and `dropped` (the unresolved superset of `moved`/`loss`)
+   are not logged.
 
 ## Inputs
 
@@ -72,8 +81,9 @@ Compare ingest *N* against the previous ingest of the same source, keyed by
 
 ## Outputs
 
-- An `ingests` table and an `ingest_id` column on `items`; optionally a
-  `fixity_events` table.
+- An `ingests` table and an `ingest_id` column on `items`; a `fixity_events` audit
+  table logging every added / metadata-changed / fixity-failed / rehashed / moved /
+  lost item, keyed by `(ingest_id, locator)`.
 - A change report: per-class counts plus the full list of fixity failures and losses.
 
 ## Constraints
@@ -88,11 +98,14 @@ Compare ingest *N* against the previous ingest of the same source, keyed by
 
 ## Open Questions
 
-- Retention: keep every ingest's full item set, or compact to (latest snapshot +
-  `fixity_events` log)?
+- Retention: the `fixity_events` log now exists — keep every ingest's full item set
+  alongside it (current), or compact older ingests to (latest snapshot + the events
+  log)?
 - Cross-source safety: a checksum gone from source A but present in source B is not a
   true loss — should the report consult other sources' manifests before crying loss?
 - Should **move** detection also require matching features (not just an equal
   checksum), to avoid coincidental collisions?
-- Algorithm migration (MD5 → SHA-256): how to re-checksum retained history without
-  losing comparability across ingests?
+- Algorithm migration: SHA-256 is now the default and a per-locator algorithm change
+  is classified `rehashed` (comparison stays within an algorithm), so switching never
+  false-alarms. Open: whether to *backfill* retained MD5 ingests with SHA-256 so old
+  history stays comparable under the new algorithm.

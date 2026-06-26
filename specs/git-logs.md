@@ -10,6 +10,7 @@ who changed what, when, is kept across runs, and any **history rewrite**
 ## Definitions
 
 - **Repository**: a local git working tree, read with `git log`.
+- **Remote**: a repository's upstream URL (e.g. GitHub), used to build per-commit links.
 - **Commit**: one entry in a repo's history — sha, author/committer identity and
   dates, parent shas, subject, body, change stats. The **sha is content-addressed**,
   so it doubles as the commit's fixity value.
@@ -23,9 +24,10 @@ who changed what, when, is kept across runs, and any **history rewrite**
 ### Repository selection
 
 1. Process each project whose `source` is `Git Logs`.
-2. Repositories come from the config — `repos` if present, otherwise
-   `secondary_storage` (a path or a list). One project may cover many repositories;
-   no per-repo folder is required.
+2. Repositories come from the config `repos` — a list of `{remote, working tree}`
+   objects. The working tree is the local clone read with `git log`; the remote is
+   optional and only used to build per-commit links. One project may cover many
+   repositories; no per-repo folder is required.
 
 ### Extraction
 
@@ -60,16 +62,18 @@ who changed what, when, is kept across runs, and any **history rewrite**
 
 ## Inputs
 
-- A `Git Logs` project whose config lists one or more local repository paths.
+- A `Git Logs` project whose config `repos` lists one or more `{remote, working
+  tree}` objects (the working tree is required; the remote optional).
 
 ## Outputs
 
 - `<project_folder>/git.sqlite` with:
   - `commits` (pk `(repo, sha)`) — every commit ever observed, retained.
   - `commit_files` — files changed per commit.
+  - `repos` (pk `repo`) — each repository's `remote` and `working_tree` (mutable metadata, refreshed each run).
   - `ingests` — one row per run.
   - `commit_presence` (pk `(ingest_id, repo, sha)`) — which commits each ingest saw.
-  - `commits_latest` — a view of the commits the latest ingest observed (current history).
+  - `commits_latest` — a view of the commits the latest ingest observed (current history), each with a `url` built from its repo's remote.
   - `commits_fts` — FTS over subject / body / author.
 - A printed **per-day work-hours report** (date, weekday, commits, time window, hours, repos).
 

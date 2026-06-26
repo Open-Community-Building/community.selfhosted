@@ -1,0 +1,28 @@
+# Runtime dependencies for community.selfhosted.
+#
+# Third-party packages the scripts import, plus the tools that run the pipeline
+# and serve its output. Everything else the code uses is in the standard library.
+#
+# Pinned to the set verified in the shared ~/selfhosted/.venv (`pip check` clean),
+# so a fresh checkout reproduces a known-good environment:
+#
+#     python -m venv .venv && source .venv/bin/activate
+#     pip install -r requirements.txt
+#     pip install -e ../community.memex   # for the `gmail_sqlite` command
+#
+# Bump a pin only after re-running the pipeline against it.
+
+# SQLite plumbing for the importers (claude_prompts.py, manifest.py, git_logs.py)
+sqlite-utils==3.39
+
+# Project registry + workflow runner: config.cfg resolved via spaCy's config
+# system (project_registry.py imports spacy + confection); `weasel run <command>`
+spacy==3.8.14
+weasel==1.0.0
+confection==1.3.3
+
+# iOS device acquisition over USB (ios_identification.py, ios_file_stat.py)
+pymobiledevice3==9.29.1
+
+# Serving the generated SQLite databases for exploration
+datasette==1.0a34

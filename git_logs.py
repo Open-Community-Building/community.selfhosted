@@ -11,8 +11,10 @@ commits — a sha that was in history before and is gone now, i.e. a force-push 
 rebase **history rewrite**. Dropped commits stay in `commits`, so rewritten-away
 history is preserved.
 
-Repositories come from a `Git Logs` project's config (`repos`, or
-`secondary_storage` — a path or a list). One project covers many repos.
+Repositories come from a `Git Logs` project's config: `repos` is a list of
+`{remote, working tree}` objects. The working tree is the local clone read with
+`git log`; the remote (e.g. a GitHub URL) builds per-commit links. One project
+covers many repos.
 """
 
 import json
@@ -32,11 +34,25 @@ GIT_SOURCES = ["Git Logs"]
 FMT = "\x1e%H\x1f%an\x1f%ae\x1f%aI\x1f%cn\x1f%ce\x1f%cI\x1f%P\x1f%s\x1f%b\x1f"
 
 
-def repo_paths(project):
-    raw = project.get("repos") or project.get("secondary_storage") or project.get("primary_storage")
-    if not raw:
-        return []
-    return raw if isinstance(raw, list) else [raw]
+def repo_specs(project):
+    """Parse a `Git Logs` project's `repos` into [{repo, working_tree, remote}].
+
+    Each entry is a `{remote, working tree}` object: the working tree is the local
+    clone to read, the remote (optional) builds commit URLs. A bare string is
+    treated as a working tree with no remote.
+    """
+    specs = []
+    for entry in project.get("repos") or []:
+        if isinstance(entry, str):
+            entry = {"working tree": entry}
+        working_tree = entry.get("working tree") or entry.get("working_tree")
+        if not working_tree:
+            print(f"  ! skipping repo without a working tree: {entry!r}")
+            continue
+        remote = (entry.get("remote") or "").rstrip("/").removesuffix(".git") or None
+        specs.append({"repo": Path(working_tree).name,
+                      "working_tree": working_tree, "remote": remote})
+    return specs
 
 
 def iter_commits(repo):
@@ -76,17 +92,25 @@ def iter_commits(repo):
         yield commit, files
 
 
-def build(db_path, repos):
-    """Append an ingest of `repos` to the git database. Returns (ingest_id, commit_count)."""
+def build(db_path, specs):
+    """Append an ingest of `specs` ([{repo, working_tree, remote}]) to the git
+    database. Returns (ingest_id, commit_count)."""
     db = sqlite_utils.Database(db_path)   # append-only — never recreated
+
+    # Repo metadata (remote, working tree) is mutable, not content-addressed:
+    # keep the latest values so commit URLs track the current remote.
+    db["repos"].insert_all(
+        [{"repo": s["repo"], "remote": s["remote"], "working_tree": s["working_tree"]}
+         for s in specs], pk="repo", replace=True)
+
     ingest_id = db["ingests"].insert(
         {"run_at": datetime.now(timezone.utc).isoformat(),
-         "repos": json.dumps([Path(r).name for r in repos]),
+         "repos": json.dumps([s["repo"] for s in specs]),
          "commit_count": 0}, pk="id").last_pk
 
     commits, files, presence = [], [], []
-    for repo in repos:
-        for commit, fs in iter_commits(repo):
+    for s in specs:
+        for commit, fs in iter_commits(s["working_tree"]):
             commits.append(commit)
             files.extend(fs)
             presence.append({"ingest_id": ingest_id, "repo": commit["repo"], "sha": commit["sha"]})
@@ -102,12 +126,17 @@ def build(db_path, repos):
     db["commit_files"].create_index(["repo", "sha"], if_not_exists=True)
     if db["commits"].count and not db["commits"].detect_fts():
         db["commits"].enable_fts(["subject", "body", "author_name"], create_triggers=True)
-    # Current history = the commits the latest ingest observed.
+    # Current history = the commits the latest ingest observed, each with a link
+    # built from its repo's remote.
     db.create_view(
         "commits_latest",
-        "SELECT c.* FROM commits c JOIN commit_presence p ON p.repo = c.repo AND p.sha = c.sha "
+        "SELECT c.*, "
+        "CASE WHEN r.remote IS NOT NULL THEN r.remote || '/commit/' || c.sha END AS url "
+        "FROM commits c "
+        "JOIN commit_presence p ON p.repo = c.repo AND p.sha = c.sha "
+        "LEFT JOIN repos r ON r.repo = c.repo "
         "WHERE p.ingest_id = (SELECT MAX(id) FROM ingests)",
-        ignore=True)
+        replace=True)
     return ingest_id, len(commits)
 
 
@@ -167,13 +196,13 @@ def report(db_path):
 
 
 def run(project):
-    repos = repo_paths(project)
-    if not repos:
+    specs = repo_specs(project)
+    if not specs:
         print(f"{project['id']}: no repositories configured; skipping")
         return
     out = project["project_folder"] / "git.sqlite"
-    ingest_id, n = build(out, repos)
-    print(f"{project['id']}: ingest {ingest_id}, {n} commits across {len(repos)} repo(s) -> {out}")
+    ingest_id, n = build(out, specs)
+    print(f"{project['id']}: ingest {ingest_id}, {n} commits across {len(specs)} repo(s) -> {out}")
     print(format_report(fixity_check(out)))
     print("\nwork-hours report (current history, author-local time):")
     report(out)
