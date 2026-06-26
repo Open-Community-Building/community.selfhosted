@@ -8,28 +8,16 @@ it. Each item is a tuple:
     (kind, locator, locator_kind, content, features)
 
 where `content` is either bytes or a filesystem path (streamed to compute the
-fingerprint), and `features` is a JSON-serialisable mapping.
+fingerprint), and `features` is a JSON-serialisable mapping. Plumbing is
+sqlite-utils.
 """
 
 import hashlib
 import json
 import os
-import sqlite3
 from pathlib import Path
 
-SCHEMA = """
-CREATE TABLE IF NOT EXISTS items (
-    seq          INTEGER PRIMARY KEY,
-    kind         TEXT,            -- item type (e.g. "file")
-    locator      TEXT,            -- address within the source (e.g. a path)
-    locator_kind TEXT,            -- how to read the locator (e.g. "path")
-    fingerprint  TEXT,            -- MD5 (hex) of the item's content
-    size         INTEGER,         -- content size in bytes
-    features     TEXT             -- JSON: source-specific attributes
-);
-CREATE INDEX IF NOT EXISTS idx_items_fingerprint ON items(fingerprint);
-CREATE INDEX IF NOT EXISTS idx_items_locator     ON items(locator);
-"""
+import sqlite_utils
 
 
 def _md5_size(content):
@@ -41,37 +29,39 @@ def _md5_size(content):
     return digest, os.path.getsize(content)
 
 
-def build(db_path, items, *, replace=True, commit_every=500):
-    """Build a manifest at `db_path` from an item iterator. Returns the row count.
+def _rows(items):
+    """Turn (kind, locator, locator_kind, content, features) tuples into manifest rows.
 
     Streaming: items are consumed and fingerprinted one at a time. A row whose
-    content can't be read is still recorded (null fingerprint + an `error`
+    content can't be read is still emitted (null fingerprint + an `error`
     feature) so one bad item never aborts the run.
     """
-    db_path = Path(db_path)
-    db_path.parent.mkdir(parents=True, exist_ok=True)
-    if replace and db_path.exists():
-        db_path.unlink()
-
-    db = sqlite3.connect(db_path)
-    db.executescript(SCHEMA)
-    n = 0
-    for kind, locator, locator_kind, content, features in items:
+    for seq, (kind, locator, locator_kind, content, features) in enumerate(items, start=1):
         feats = dict(features or {})
         try:
             fingerprint, size = _md5_size(content)
         except OSError as exc:
             fingerprint, size = None, None
             feats["error"] = repr(exc)
-        db.execute(
-            "INSERT INTO items (kind, locator, locator_kind, fingerprint, size, features) "
-            "VALUES (?,?,?,?,?,?)",
-            (kind, str(locator), locator_kind, fingerprint, size,
-             json.dumps(feats, ensure_ascii=False, sort_keys=True)),
-        )
-        n += 1
-        if n % commit_every == 0:
-            db.commit()
-    db.commit()
-    db.close()
-    return n
+        yield {
+            "seq": seq,
+            "kind": kind,
+            "locator": str(locator),
+            "locator_kind": locator_kind,
+            "fingerprint": fingerprint,
+            "size": size,
+            "features": json.dumps(feats, ensure_ascii=False, sort_keys=True),
+        }
+
+
+def build(db_path, items, *, replace=True):
+    """Build a manifest at `db_path` from an item iterator. Returns the row count."""
+    db_path = Path(db_path)
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    db = sqlite_utils.Database(db_path, recreate=replace)
+    db["items"].insert_all(_rows(items), pk="seq")  # streams in batches
+    if not db["items"].exists():
+        return 0
+    db["items"].create_index(["fingerprint"], if_not_exists=True)
+    db["items"].create_index(["locator"], if_not_exists=True)
+    return db["items"].count
