@@ -4,7 +4,7 @@ claude_prompts:
     - python claude_prompts.py
   deps:
     - path: claude_prompts.py
-      md5: fcf936446e1a3374c13f2d1bfa45bc44
+      md5: f603fc59417a80e99271ca8cf1afc084
     - path: project_registry.py
       md5: 2e06ae4ff9e7a87210fdf3bdcc2a4f05
     - path: config.cfg
@@ -81,7 +81,7 @@ claude_ingest:
     - python claude_ingest.py
   deps:
     - path: claude_ingest.py
-      md5: 8a372253756b6f72c004148867dd7f4d
+      md5: d9ab385183223221feb0caadc9cca6e5
     - path: project_registry.py
       md5: 2e06ae4ff9e7a87210fdf3bdcc2a4f05
     - path: config.cfg
