@@ -7,12 +7,18 @@ dicts rather than hand-written SQL. The only bespoke part is the mapping from th
 export's nested JSON to flat rows.
 """
 
+import hashlib
 import json
+import re
+from datetime import datetime, timezone
 
 import sqlite_utils
 from project_registry import load_projects
 
 projects = load_projects()
+
+ALGORITHM = "sha256"                   # checksum algorithm for export provenance (matches the manifest)
+_EPOCH_RE = re.compile(r"-(\d{10})-")  # the export's Unix epoch, embedded in the export zip filename
 
 
 def _content_block(message_uuid, position, block):
@@ -118,19 +124,58 @@ def build(db_path, data):
     return db
 
 
+def _latest_snapshot(fetched):
+    """The export snapshot folder (one holding conversations.json) that sorts last, or None.
+
+    Snapshots are named by the export's embedded epoch (YYYY-MM-DD-HH-MM), so lexical
+    order is chronological and the last is the most recent export.
+    """
+    if not fetched.is_dir():
+        return None
+    snaps = sorted(d for d in fetched.iterdir()
+                   if d.is_dir() and (d / "conversations.json").is_file())
+    return snaps[-1] if snaps else None
+
+
+def _exported_at(snapshot):
+    """The export's generation time (UTC ISO) from the epoch in its zip filename, or None."""
+    for zip_path in snapshot.glob("*.zip"):
+        m = _EPOCH_RE.search(zip_path.name)
+        if m:
+            return datetime.fromtimestamp(int(m.group(1)), tz=timezone.utc).isoformat()
+    return None
+
+
 def run(project):
-    conversations_json = project["project_folder"] / "fetched" / "conversations.json"
+    fetched = project["project_folder"] / "fetched"
+    snapshot = _latest_snapshot(fetched)
+    conversations_json = (snapshot or fetched) / "conversations.json"
+    if not conversations_json.is_file():
+        print(f"{project['id']}: no conversations.json under {fetched}; skipping")
+        return
     out = project["project_folder"] / "claude_prompts" / "conversations.sqlite"
     out.parent.mkdir(parents=True, exist_ok=True)
 
-    print(f"Reading {conversations_json} ...")
-    data = json.loads(conversations_json.read_text())
-    print(f"  {len(data)} conversations found.")
+    raw = conversations_json.read_bytes()
+    sha256 = hashlib.new(ALGORITHM, raw).hexdigest()
+    data = json.loads(raw)
+    print(f"Reading {conversations_json}")
+    print(f"  snapshot={snapshot.name if snapshot else '(flat)'}  "
+          f"sha256={sha256[:16]}…  {len(raw)} bytes  {len(data)} conversations")
 
     db = build(out, data)
+    db["export"].insert({
+        "snapshot": snapshot.name if snapshot else None,
+        "sha256": sha256,
+        "algorithm": ALGORITHM,
+        "size_bytes": len(raw),
+        "conversation_count": len(data),
+        "exported_at": _exported_at(snapshot) if snapshot else None,
+        "imported_at": datetime.now(timezone.utc).isoformat(),
+    })
 
     print(f"\nDone -> {out}")
-    for table in ("conversations", "messages", "content_blocks", "attachments", "files"):
+    for table in ("conversations", "messages", "content_blocks", "attachments", "files", "export"):
         if db[table].exists():
             print(f"  {db[table].count:>6}  {table}")
 

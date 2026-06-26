@@ -32,7 +32,9 @@ def as_datetime(value):
     if value is None:
         return None
     if isinstance(value, datetime):
-        return value
+        # pymobiledevice3 builds these via datetime.fromtimestamp() → naive local time;
+        # normalise to UTC (astimezone reads a naive value as the system's local zone).
+        return value.astimezone(timezone.utc)
     # fallback for builds that return ns-since-epoch as str/int
     seconds = int(value) / 1_000_000_000
     return datetime.fromtimestamp(seconds, tz=timezone.utc)

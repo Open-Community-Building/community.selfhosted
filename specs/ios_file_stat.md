@@ -35,7 +35,7 @@ contents can be catalogued and analysed — and later folded into the
    - `kind` — `image` / `movie` / `other`, by extension.
    - `size` — `st_size`, in bytes.
    - `ifmt` — `st_ifmt` (file mode / type flags).
-   - `mtime`, `birthtime` — from `st_mtime` / `st_birthtime`, as timestamps.
+   - `mtime`, `birthtime` — from `st_mtime` / `st_birthtime`, normalised to **UTC**.
 3. Write the collected records to the dump file.
 
 ## Inputs
@@ -48,7 +48,7 @@ contents can be catalogued and analysed — and later folded into the
 
 - `<project>/dump/pymobiledevice3_files.json` — a JSON object keyed by device file
   path; each value is `{path, kind, size, ifmt, mtime, birthtime}` (datetimes
-  written as ISO-8601, keys sorted, pretty-printed).
+  written as **UTC** ISO-8601, keys sorted, pretty-printed).
 
 ## Constraints
 
@@ -56,6 +56,8 @@ contents can be catalogued and analysed — and later folded into the
   copied off.
 - **Idempotent** — if the matched project's dump already exists, the run is skipped.
 - The device is matched to its project by `UniqueDeviceID`.
+- Timestamps are normalised to **UTC** — `st_mtime`/`st_birthtime` arrive as naive
+  local time and are converted — consistent with the rest of the pipeline.
 
 ## Open Questions
 

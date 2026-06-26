@@ -30,6 +30,7 @@ Specs live in the `specs/` directory and are the source of truth for system beha
 | [Source Manifest](specs/source-manifest.md) | Draft | Per-source index of every item — locator + checksum + features — for sampling, cross-source dedup, stats and parallelism |
 | [Git Logs](specs/git-logs.md) | Draft | Convert local git repositories' commit history (commits + file changes) to SQLite, keyed by repo |
 | [Fixity & Change Detection](specs/fixity.md) | Draft | Detect additions / losses / silent content changes across ingests by comparing checksums (fixity checking)               |
+| [Claude Prompts](specs/claude_prompts.md) | Draft | Convert the latest Claude export snapshot to SQLite; keep exports as epoch-named snapshots and record the conversations.json SHA-256 |
 
 ## Project Structure
 
