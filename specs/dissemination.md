@@ -15,7 +15,7 @@ periodically. This is the OAIS *Access* / dissemination leg, mirroring the OAIS
 ## Definitions
 
 - **AIP** (Archival Information Package): the unfiltered master archive — the
-  union of `~/selfhosted/archive.sqlite`, the per-project derived databases
+  union of `~/selfhosted/archive/archive.sqlite`, the per-project derived databases
   (`manifest.sqlite`, `conversations.sqlite`, `gmail.sqlite`, `git.sqlite`), and
   the raw items they index. Never disseminated as-is.
 - **Audience**: one of five concentric access levels, each viewing its own + every
@@ -94,7 +94,7 @@ periodically. This is the OAIS *Access* / dissemination leg, mirroring the OAIS
 
 ## Inputs
 
-- The master `archive.sqlite` and the per-project derived databases.
+- The master `~/selfhosted/archive/archive.sqlite` and the per-project derived databases.
 - An `audiences.json` per Storage Box: `{tier, host, subaccount, remote_dir,
   ssh_key_path, project_id?}`. Kept outside the public repo.
 - The `access_tier` column on every disseminated entity.

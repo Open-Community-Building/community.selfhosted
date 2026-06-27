@@ -56,6 +56,13 @@ role, and verification state.
      audiences any project drawing from this location may serve
 2. Discovery mirrors the project registry: walk the directory, read each
    `location.json`, build a registry keyed by `id`. `project_registry.select_*` style.
+3. A location's directory also holds a sibling `identification.json` — the
+   factual hardware identity (volume UUID, iOS UDID, SSH host key, etc.) — used
+   to verify "this mount is the location I think it is" before any stage trusts
+   the data on it. See [Location Identity](location_identity.md). The
+   `mount_point` declared in `location.json` becomes binding only via this
+   verification check; mount_point + volume name alone are not trustworthy
+   (USB volumes with colliding names mount in arbitrary order).
 
 ### Per-project source links
 
@@ -143,7 +150,10 @@ project, with locations the means by which it's met.
 - `medium` is a **closed enum**; extending it is a spec change so the "distinct
   media" count stays reliable.
 - `mount_point` is **declared**, not auto-discovered — a missing mount surfaces
-  as a configuration fact rather than a silent guess.
+  as a configuration fact rather than a silent guess. Before any stage uses a
+  declared `mount_point`, [Location Identity](location_identity.md) verifies the
+  medium's strong identifier (volume UUID for disks, UDID for iOS devices,
+  SSH host key fingerprint for cloud) matches the location's recorded one.
 - The verification freshness window is **90 days** (global, not per-location or
   per-project — simpler and field-typical).
 - Backwards compatible with the current `primary_storage` /
@@ -158,16 +168,13 @@ project, with locations the means by which it's met.
 
 ## Open Questions
 
-- Should `medium` be a closed enum or free-text? Closed gives reliable "distinct
-  media" counts (the "**2**" leg) but rejects unknown types; free-text doesn't.
-- Verification freshness window — 90 days by default; per-location override, or
-  per-project override?
-- For a project that has never been archived to a target location (i.e. the source
-  *is* the only copy): does compliance return "not yet evaluable" (`copies = 1`,
-  not compliant) or do we count the live source as a copy? The textbook answer is
-  "not yet evaluable, and that's exactly the alarm 3-2-1-1-0 is meant to raise."
-- A `home_site` configuration value — where does it live? `config.cfg`?
-- Should `mount_point` be discoverable (probe `/Volumes`) rather than declared?
-- The events ledger is the first cross-project SQLite. Does it live at
-  `~/selfhosted/archive.sqlite`, or inside `community.selfhosted`'s working tree
-  (excluded from git)? The former feels more honest (it's data, not code).
+- **Location granularity**: one location per *physical medium* (an external HDD
+  with two partitions is one location) or per *mount-point* (each partition is
+  its own)? Per-medium matches PREMIS *storage* most closely; per-mount-point is
+  simpler to declare. Leaning per-medium.
+- **`verified` event payload**: just `{status, when}`, or also a count of items
+  re-checksummed and any failures? (Detail also lives in `manifest.fixity_events`,
+  so this is a redundancy decision.)
+- **Default `home_site`** when absent from a project's `config.json`: hardcoded
+  `"home"`, or required (fail loudly)? Hardcoding lets existing projects keep
+  working without edits; requiring it forces an intentional declaration.

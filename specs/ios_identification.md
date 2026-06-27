@@ -6,6 +6,13 @@ Report the identity and health of a connected iOS device over USB, so devices ca
 be catalogued and troubleshooting/inventory has the facts: which iPhone/iPad it is,
 its iOS build, storage and battery.
 
+This is the iOS specialisation of [Location Identity](location_identity.md) — the
+`UniqueDeviceID` it reads is the **strong identifier** for `device`-medium
+locations, the same role `volume_uuid` plays for disks and `ssh_host_key_fingerprint`
+plays for cloud objects. The existing `source_UniqueDeviceID` field in iPhone/iPad
+project `config.json` files predates that generalisation and is kept as the
+backwards-compatibility path.
+
 ## Definitions
 
 - **Lockdown identity** (`all_values`): the root-domain property dictionary returned
