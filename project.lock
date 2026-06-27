@@ -16,18 +16,18 @@ resolve_config:
     - python project_registry.py
   deps:
     - path: project_registry.py
-      md5: 2e06ae4ff9e7a87210fdf3bdcc2a4f05
+      md5: 16a1d23f396a19974411d08d2eaa3241
     - path: config.cfg
       md5: 218b9090c596d20368c68201407fabd4
   outs: []
 ensure_dirs:
   cmd: python -m weasel run ensure_dirs
   script:
-    - python -c "import project_registry as r; r.ensure_dirs(r.load_projects()); print('ensured
-      fetched/ and processed/ for all projects')"
+    - python -c "import project_registry as r; r.ensure_dirs(r.select_projects());
+      print('ensured fetched/ and processed/')"
   deps:
     - path: project_registry.py
-      md5: 2e06ae4ff9e7a87210fdf3bdcc2a4f05
+      md5: 16a1d23f396a19974411d08d2eaa3241
     - path: config.cfg
       md5: 218b9090c596d20368c68201407fabd4
   outs: []

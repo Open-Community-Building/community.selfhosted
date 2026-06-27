@@ -32,6 +32,8 @@ Specs live in the `specs/` directory and are the source of truth for system beha
 | [Fixity & Change Detection](specs/fixity.md) | Draft | Detect additions / losses / silent content changes across ingests by comparing checksums (fixity checking)      |
 | [Claude Ingest](specs/claude_ingest.md) | Draft | Unpack new Claude export zips from claude_ingest/ into UTC-named fetched/ snapshots (only conversations.json) |
 | [Claude Prompts](specs/claude_prompts.md) | Draft | Convert the latest Claude snapshot to SQLite and record the conversations.json SHA-256 provenance |
+| [Locations](specs/locations.md) | Draft | Registry of storage locations with copy role / medium / site / online state — 3-2-1-1-0 evaluated per project |
+| [Dissemination](specs/dissemination.md) | Draft | Build per-audience DIPs (self/family/friends/project/public) as BagIt bags, deliver via SFTP to Hetzner Storage Box subaccounts |
 
 ## Project Structure
 

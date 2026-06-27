@@ -85,6 +85,13 @@ replaces the hand-written `config.py` while preserving the project registry that
    `Prompts`) that identifies which pipeline applies to it.
 2. A stage skips projects whose `source` it does not handle, so a single command
    run over the registry only processes the relevant projects.
+3. A project's storage homes MAY be declared as a `sources: [<location_id>, …]`
+   list referencing the [Locations](locations.md) registry (and
+   `archive_targets: [<location_id>, …]` for the archived copies). The bare
+   `primary_storage` / `secondary_storage` paths remain accepted for backwards
+   compatibility — they resolve to a matching location's `mount_point` when one
+   is registered. A project's `access_tier` (see [Dissemination](dissemination.md))
+   is set on the project itself, defaulting to `self`.
 
 ## Inputs
 

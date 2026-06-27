@@ -1,0 +1,156 @@
+# Locations
+
+## Purpose
+
+Register the physical/logical storage homes that hold project data — and let the
+**3-2-1-1-0** backup strategy be evaluated, **per project**, as a SQL query rather
+than a hand-counted spreadsheet.
+
+A location is the archival "where the bits live" — promoting the bare
+`primary_storage` / `secondary_storage` paths that today sit inside each project's
+`config.json` into a first-class registry with its own description, lifecycle, copy
+role, and verification state.
+
+## Definitions
+
+- **Location**: one storage home holding bits — an internal SSD, an external HDD, a
+  cloud object store, an attached device, an offline disk in a drawer. Maps to
+  PREMIS *storage* + a free-text custodial history.
+- **Copy**: one instance of a project's data at one location. A project may have
+  many copies, each at a different location; the 3-2-1-1-0 strategy is evaluated
+  over the set of *active* copies.
+- **3-2-1-1-0**: the gold-standard backup strategy — **3** copies on **2** distinct
+  media, **1** off-site, **1** offline (or immutable), with **0** errors after
+  fixity verification.
+- **Source link**: an entry tying a project to a location at a point in time
+  (`status` ∈ active / migrated / retired). Locations may come and go; the
+  project's chain of custody is the timeline of its source links.
+- **Active location**: one with no terminal lifecycle event (decommissioned,
+  deaccessioned).
+- **Home site**: the `site` identifier this project treats as on-site; declared
+  per project in its `config.json` (`home_site: <string>`). Anything not matching
+  it counts toward the **off-site** check.
+
+## Behavior
+
+### Location registry
+
+1. Locations are declared one per directory under `~/selfhosted/locations/`, each
+   with a `location.json` carrying:
+   - `id` (folder name, stable, never renamed)
+   - `medium` — **closed enum**: `internal_ssd` / `external_hdd` / `external_ssd`
+     / `cloud_object` / `optical` / `tape` / `device` / `other`. Closed so the
+     "distinct media" count (the "**2**" leg) stays reliable; extending the set
+     is a spec change.
+   - `site` — a free-text site identifier (`home`, `hetzner_storage_box`,
+     `friend_basement`, …) for the **off-site** check
+   - `online_state` — `online` / `offline` / `immutable`, for the **offline /
+     immutable** check
+   - `mount_point` — declared path where the bits are accessible when online
+     (not auto-discovered from `/Volumes`; declared so a missing mount surfaces
+     as a configuration fact, not a guess)
+   - `capacity_bytes` — optional
+   - `acquired_at` — when the medium entered service
+   - `history` — free-text custodial history (origin, transfers, why it exists)
+   - `access_tier` — see [Dissemination](dissemination.md); constrains which
+     audiences any project drawing from this location may serve
+2. Discovery mirrors the project registry: walk the directory, read each
+   `location.json`, build a registry keyed by `id`. `project_registry.select_*` style.
+
+### Per-project source links
+
+1. A project's `config.json` carries `sources: [<location_id>, …]` — the active
+   source locations the project draws from. Bare `primary_storage` /
+   `secondary_storage` paths remain accepted (resolved against the matching
+   location's `mount_point`) so existing projects keep working.
+2. A project MAY add `archive_targets: [<location_id>, …]` — locations that hold
+   the project's archived copies (vs the live source). This is what makes
+   3-2-1-1-0 evaluable: compliance counts archive targets, not the (typically
+   single) live source.
+3. A project's `config.json` carries `home_site: <string>` — the `site`
+   identifier treated as on-site for the **off-site** compliance check. Declared
+   per project (not globally) so different installs / collaborators can each
+   call their own home "home".
+4. The full source/target *history* of a project is in the Events ledger (below);
+   `config.json` carries the *current* state.
+
+### Lifecycle events
+
+The location registry is timeless on its own; lifecycle is captured in an
+append-only events ledger at `~/selfhosted/archive.sqlite/events`:
+
+1. Event kinds: `acquired`, `mounted`, `migrated`, `verified`, `decommissioned`,
+   `deaccessioned`, `restored`, `disseminated` (the last is for
+   [Dissemination](dissemination.md)).
+2. Each event records `(when, kind, agent, location_id, project_id?, notes)`.
+   `agent` is the human or tool responsible (PREMIS *Agent*).
+3. The **`verified`** event records the outcome of a fixity run against a location
+   — this is the "0 errors" leg of 3-2-1-1-0. The existing `manifest.fixity_events`
+   table is its detailed counterpart; `events.verified` is the summary row.
+
+### Per-project compliance check
+
+For each project P, count over its `archive_targets` whose locations are currently
+**active** (no terminal event):
+
+1. `copies` = number of distinct active locations
+2. `media` = number of distinct `medium` values
+3. `offsite` = at least one location whose `site` ≠ the configured home site
+4. `offline` = at least one location whose `online_state` ∈ {`offline`, `immutable`}
+5. `all_verified` = every active location has a `verified` event within the
+   configured freshness window (default **90 days**)
+
+P is **compliant** when `copies ≥ 3 AND media ≥ 2 AND offsite AND offline AND
+all_verified`.
+
+The reason compliance is **per project**, not per source location: source
+locations come and go (the iPhone is sold, a download volume is shucked, a Storage
+Box is migrated). Projects remain. A project's data has a lifetime measured in
+decades; a medium's lifetime in years. Compliance is therefore a property of the
+project, with locations the means by which it's met.
+
+## Inputs
+
+- `~/selfhosted/locations/<id>/location.json` per location.
+- Each project's `config.json` `sources` / `archive_targets` referencing location ids.
+- The events ledger (`~/selfhosted/archive.sqlite/events`).
+
+## Outputs
+
+- A queryable registry of locations and links.
+- For each project, a compliance row: `(project_id, copies, media, offsite,
+  offline, all_verified, compliant)`.
+- A finding-aid view in Datasette joining manifest items → location → project →
+  events, so for any item you can answer "which copies hold it, when were they
+  last verified, when was the location acquired."
+
+## Constraints
+
+- Location ids are stable; renaming a location is a `deaccession` + new
+  `acquisition`, not an edit.
+- The events ledger is **append-only** — like the manifest, like git_logs.
+- Backwards compatible with the current `primary_storage` /
+  `secondary_storage`: when those are present, they resolve to a location's
+  `mount_point` if a matching location exists; otherwise the bare path keeps
+  working.
+- A location's `access_tier` constrains the audiences any project drawing from it
+  may serve — see [Dissemination](dissemination.md).
+- The Hetzner Storage Box (one box = one site) counts as **one** location's site
+  regardless of how many subaccounts it hosts; the subaccount is a delivery
+  detail, not a separate site for off-site purposes.
+
+## Open Questions
+
+- Should `medium` be a closed enum or free-text? Closed gives reliable "distinct
+  media" counts (the "**2**" leg) but rejects unknown types; free-text doesn't.
+- Verification freshness window — 90 days by default; per-location override, or
+  per-project override?
+- For a project that has never been archived to a target location (i.e. the source
+  *is* the only copy): does compliance return "not yet evaluable" (`copies = 1`,
+  not compliant) or do we count the live source as a copy? The textbook answer is
+  "not yet evaluable, and that's exactly the alarm 3-2-1-1-0 is meant to raise."
+- A `home_site` configuration value — where does it live? `config.cfg`?
+- Should `mount_point` be discoverable (probe `/Volumes`) rather than declared?
+- The events ledger is the first cross-project SQLite. Does it live at
+  `~/selfhosted/archive.sqlite`, or inside `community.selfhosted`'s working tree
+  (excluded from git)? The former feels more honest (it's data, not code).
