@@ -4,11 +4,11 @@ claude_prompts:
     - python claude_prompts.py
   deps:
     - path: claude_prompts.py
-      md5: f603fc59417a80e99271ca8cf1afc084
+      md5: fd7f46a81237a8921ecdb7063bc4939e
     - path: project_registry.py
-      md5: 2e06ae4ff9e7a87210fdf3bdcc2a4f05
+      md5: f72cda9afdd43d5353395addf781b2f8
     - path: config.cfg
-      md5: 218b9090c596d20368c68201407fabd4
+      md5: 58d64ee0c7d1ab1a0fe25c90c961251f
   outs: []
 resolve_config:
   cmd: python -m weasel run resolve_config
@@ -81,11 +81,11 @@ claude_ingest:
     - python claude_ingest.py
   deps:
     - path: claude_ingest.py
-      md5: d9ab385183223221feb0caadc9cca6e5
+      md5: d5a9ffae85ecdb7e41dcc3c21b588a1a
     - path: project_registry.py
-      md5: 2e06ae4ff9e7a87210fdf3bdcc2a4f05
+      md5: f72cda9afdd43d5353395addf781b2f8
     - path: config.cfg
-      md5: 218b9090c596d20368c68201407fabd4
+      md5: 58d64ee0c7d1ab1a0fe25c90c961251f
   outs: []
 manifest:
   cmd: python -m weasel run manifest
@@ -112,4 +112,28 @@ stats:
       md5: 2e06ae4ff9e7a87210fdf3bdcc2a4f05
     - path: config.cfg
       md5: 218b9090c596d20368c68201407fabd4
+  outs: []
+verify_identity:
+  cmd: python -m weasel run verify_identity
+  script:
+    - python location_identity.py
+  deps:
+    - path: location_identity.py
+      md5: d4f9877cef06926d76eab8df4b3c5c74
+    - path: project_registry.py
+      md5: f72cda9afdd43d5353395addf781b2f8
+    - path: config.cfg
+      md5: 58d64ee0c7d1ab1a0fe25c90c961251f
+  outs: []
+compliance:
+  cmd: python -m weasel run compliance
+  script:
+    - python compliance.py
+  deps:
+    - path: compliance.py
+      md5: 55576eae66728646b507084506bf9d41
+    - path: project_registry.py
+      md5: f72cda9afdd43d5353395addf781b2f8
+    - path: config.cfg
+      md5: 58d64ee0c7d1ab1a0fe25c90c961251f
   outs: []
