@@ -68,9 +68,6 @@ commands:
       - "location_identity.py"
       - "project_registry.py"
       - "config.cfg"
-    deps:
-      - "project_registry.py"
-      - "config.cfg"
 
   - name: "device_info"
     help: "Print identity (model, firmware, identifiers, battery, disk) of the iOS device connected over USB."

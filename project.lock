@@ -16,9 +16,9 @@ resolve_config:
     - python project_registry.py
   deps:
     - path: project_registry.py
-      md5: 16a1d23f396a19974411d08d2eaa3241
+      md5: f72cda9afdd43d5353395addf781b2f8
     - path: config.cfg
-      md5: 218b9090c596d20368c68201407fabd4
+      md5: 58d64ee0c7d1ab1a0fe25c90c961251f
   outs: []
 ensure_dirs:
   cmd: python -m weasel run ensure_dirs
