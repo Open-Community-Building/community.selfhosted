@@ -10,9 +10,9 @@ import os
 import subprocess
 import sys
 
-from project_registry import load_projects
+from project_registry import select_projects
 
-projects = load_projects()
+projects = select_projects()
 
 
 def find_mbox(folder):

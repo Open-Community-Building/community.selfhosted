@@ -48,9 +48,26 @@ replaces the hand-written `config.py` while preserving the project registry that
    discovery function with the declared arguments.
 3. The discovery function performs [Photo Discovery](photo-registry.md) and
    returns the project registry.
-4. Each script obtains the registry by calling `load_projects()` from
-   `project_registry` (`from project_registry import load_projects`); there is no
-   module-level `config.py` singleton.
+4. Each script obtains the registry by calling `select_projects()` from
+   `project_registry`; there is no module-level `config.py` singleton.
+   `select_projects()` returns `load_projects()` filtered by the project selection
+   (below) — the unfiltered `load_projects()` remains available for callers that
+   need every project.
+
+### Project Selection
+
+1. A run MAY be restricted to a **single project** by id, via either:
+   - **`-p` / `--project <id>`** — a command-line argument to the stage script
+     (`python <stage>.py --project <id>`);
+   - **`PROJECT=<id>`** — an environment variable, which is the path
+     `weasel run <cmd>` takes (weasel cannot forward arbitrary CLI args).
+2. Precedence: explicit `--project` arg → `PROJECT` env var → all projects
+   (no restriction).
+3. An unknown id exits with the list of configured ids, so typos surface
+   immediately rather than silently no-op'ing.
+4. Restriction is applied **before** the per-stage source filter, so selecting a
+   project whose `source` doesn't match the stage results in the stage being a
+   no-op (consistent with running every stage over every project).
 
 ### Overrides
 

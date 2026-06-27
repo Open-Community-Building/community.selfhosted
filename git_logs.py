@@ -23,9 +23,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import sqlite_utils
-from project_registry import load_projects
+from project_registry import select_projects
 
-projects = load_projects()
+projects = select_projects()
 
 GIT_SOURCES = ["Git Logs"]
 

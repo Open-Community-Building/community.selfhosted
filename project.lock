@@ -87,3 +87,29 @@ claude_ingest:
     - path: config.cfg
       md5: 218b9090c596d20368c68201407fabd4
   outs: []
+manifest:
+  cmd: python -m weasel run manifest
+  script:
+    - python photos_manifest.py
+  deps:
+    - path: photos_manifest.py
+      md5: a606f848571677ad6fc925d095a0f955
+    - path: manifest.py
+      md5: be14cee78d05f76c6a81e1fc8bb88644
+    - path: project_registry.py
+      md5: 2e06ae4ff9e7a87210fdf3bdcc2a4f05
+    - path: config.cfg
+      md5: 218b9090c596d20368c68201407fabd4
+  outs: []
+stats:
+  cmd: python -m weasel run stats
+  script:
+    - python photos_stats.py
+  deps:
+    - path: photos_stats.py
+      md5: c3eff9bfa01b2c852536912a576394f6
+    - path: project_registry.py
+      md5: 2e06ae4ff9e7a87210fdf3bdcc2a4f05
+    - path: config.cfg
+      md5: 218b9090c596d20368c68201407fabd4
+  outs: []

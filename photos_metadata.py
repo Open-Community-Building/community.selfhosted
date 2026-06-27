@@ -3,13 +3,13 @@ import os
 import random
 from pprint import pprint
 
-from project_registry import load_projects
+from project_registry import select_projects
 
 import re
 from datetime import datetime, timezone
 from pathlib import Path
 
-projects = load_projects()
+projects = select_projects()
 
 
 def takeout_timestamp(file_path: str) -> dict:

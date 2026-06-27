@@ -39,7 +39,7 @@ workflows:
 # paths depend on which projects are configured, so they always run when invoked.
 commands:
   - name: "resolve_config"
-    help: "Resolve config.cfg through spaCy's config system and print the discovered project registry."
+    help: "Resolve config.cfg through spaCy's config system and print the discovered project registry. Restrict to one project with `PROJECT=<id> weasel run resolve_config`."
     script:
       - "${vars.python} project_registry.py"
     deps:
@@ -47,9 +47,9 @@ commands:
       - "config.cfg"
 
   - name: "ensure_dirs"
-    help: "Create each project's fetched/ and processed/ directories. Explicit side-effect step — config resolution itself never creates directories."
+    help: "Create each project's fetched/ and processed/ directories. Explicit side-effect step — config resolution itself never creates directories. Restrict to one project with `PROJECT=<id> weasel run ensure_dirs`."
     script:
-      - "${vars.python} -c \"import project_registry as r; r.ensure_dirs(r.load_projects()); print('ensured fetched/ and processed/ for all projects')\""
+      - "${vars.python} -c \"import project_registry as r; r.ensure_dirs(r.select_projects()); print('ensured fetched/ and processed/')\""
     deps:
       - "project_registry.py"
       - "config.cfg"

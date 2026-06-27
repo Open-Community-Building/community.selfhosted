@@ -52,6 +52,24 @@ per source.
    source (e.g. the gmail iterator yields one message at a time as it records
    `mbox_offset`; a photo iterator walks the tree one file at a time).
 5. Indexing is **read-only** on the source; it writes only the manifest.
+6. Indexing reports **progress** to stderr as it streams — a throttled one-line
+   summary labelled by source: items (against the **total**, with percentage and ETA,
+   when the total is known), bytes hashed, rate, elapsed. Each run also announces which
+   **ingest** it is appending, so a long run over a large source is observable.
+7. Hashing MAY run **concurrently** across worker threads — the checksum and file read
+   release the GIL, so it uses multiple cores — while results are emitted in input
+   order, keeping `seq`, the capped first-N, and fixity comparability deterministic.
+
+### Partial runs
+
+1. A run MAY be capped to the first *N* items (a **limit**) — for fast iteration or a
+   first look without reading a whole multi-GB source. The cap is recorded on the
+   ingest (`item_limit`).
+2. Because traversal is **deterministic** (items visited in a stable, sorted order),
+   the same cap yields the same first *N* items, so capped ingests stay comparable: a
+   later, larger cap simply **adds** the next items (fixity sees `added`, not spurious
+   change). This is the lightweight "run part of the pipeline" path, distinct from the
+   richer [Diversity Sampling](diversity-sampling.md) selection.
 
 ### One iterator, two consumers
 

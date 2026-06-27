@@ -39,8 +39,9 @@ Specs live in the `specs/` directory and are the source of truth for system beha
 community.selfhosted/
 ├── specs/                # Specifications — source of truth
 │
-├── project.yml           # Weasel / spaCy-projects workflow: commands + the `photos` pipeline
+├── project.yml           # Weasel / spaCy-projects workflow: commands + the `photos` & `claude` pipelines
 ├── config.cfg            # Declarative configuration (projects root), resolved by spaCy's config system
+├── requirements.txt      # Pinned runtime deps (sqlite-utils, spaCy/weasel, datasette, pymobiledevice3)
 ├── project_registry.py   # Registered project discovery + load_projects() / ensure_dirs() (used by every script)
 │
 │                         # Photo inventory pipeline (runs over every configured project)
@@ -48,12 +49,19 @@ community.selfhosted/
 ├── photos_metadata.py    # Attach Google Takeout metadata   → metadata.json
 ├── photos_stats.py       # Counts / sizes / type breakdown  → stats.json
 │
+│                         # Source Manifest + fixity (append-only ingests, SHA-256, change detection)
+├── manifest.py           # Generic manifest engine: build / fixity_check / fixity_events
+├── photos_manifest.py    # Photos item-iterator             → photos_manifest/manifest.sqlite
+│
 │                         # iOS device acquisition (pymobiledevice3, over USB)
 ├── ios_identification.py # Print device identity / battery / disk
 ├── ios_file_stat.py      # AFC-walk a device                → dump/pymobiledevice3_files.json
 │
 │                         # Archive → SQLite (for Datasette)
-└── claude_prompts.py     # Claude conversations.json        → SQLite
+├── claude_ingest.py      # Unpack Claude export zips → fetched/<utc>/conversations.json
+├── claude_prompts.py     # Latest Claude snapshot    → conversations.sqlite (+ SHA-256)
+├── gmail_sqlite.py       # Google Takeout mbox       → gmail.sqlite (via memex)
+└── git_logs.py           # Git commit history        → git.sqlite (append-only; flags rewrites)
 ```
 
 ## Getting Started
@@ -89,5 +97,20 @@ spacy project run stats           # counts / sizes / type breakdown (run after m
 spacy project run gmail_sqlite    # Google Takeout mbox → SQLite via `memex`
 spacy project run claude_ingest   # unpack new Claude export zips: claude_ingest/ → fetched/<utc>/conversations.json
 spacy project run claude_prompts  # convert the latest Claude snapshot → conversations.sqlite (+ SHA-256 provenance)
+```
+
+### Restrict to one project
+
+Any stage (and the `photos` / `claude` workflows) accepts a project selector — useful
+when you want to run a pipeline against a single project rather than every configured
+one. See [Configure Projects](specs/configure_projects.md#project-selection).
+
+```bash
+# Direct (script): `--project` / `-p`
+python claude_prompts.py --project claude
+
+# Via weasel (can't forward args): use the PROJECT env var
+PROJECT=googlephotos_takeout weasel run manifest
+PROJECT=claude weasel run claude         # whole workflow, one project
 spacy project run git_logs        # git commit history → SQLite (append-only; flags history rewrites)
 ```

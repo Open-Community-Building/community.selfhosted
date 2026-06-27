@@ -3,9 +3,9 @@ import json
 import os
 import random
 
-from project_registry import load_projects
+from project_registry import select_projects
 
-projects = load_projects()
+projects = select_projects()
 
 def md5(path):
     with open(path, "rb") as f:
@@ -46,7 +46,7 @@ def process(project, sample):
 def main():
     for projectid in projects.keys():
         project = projects[projectid]
-        if projects[projectid]["source"] not in ["Google Takeout", "AndroidPhotoBackup", "IPad", "IPhone"]:
+        if projects[projectid]["source"] not in ["Google Takeout", "AndroidPhotoBackup", "IPad", "IPhone", "MacPictures"]:
             continue
         sample = False
         if (project['project_folder'] / 'photos_md5' / 'md5.json').is_file():

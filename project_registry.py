@@ -6,7 +6,10 @@ registered function (the Photo Discovery behavior in specs/photo-registry.md) an
 side-effect free — creating each project's working directories is the explicit
 ensure_dirs() step, not a side effect of resolution.
 """
+import argparse
 import json
+import os
+import sys
 from pathlib import Path
 from pprint import pprint
 
@@ -56,5 +59,26 @@ def ensure_dirs(projects: dict) -> None:
         project["processed_folder"].mkdir(parents=True, exist_ok=True)
 
 
+def select_projects(argv=None, projects=None) -> dict:
+    """Load the registry filtered to one project, when `--project <id>` (or `PROJECT`
+    env var) selects one. The env var is the path weasel takes — `weasel run <cmd>`
+    can't forward CLI args, so `PROJECT=<id> weasel run <cmd>` is the way.
+
+    No selection → all projects, unchanged. Unknown id → exit listing valid ones.
+    """
+    if projects is None:
+        projects = load_projects()
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument("-p", "--project", default=os.environ.get("PROJECT"))
+    args, _ = parser.parse_known_args(argv)
+    if not args.project:
+        return projects
+    if args.project not in projects:
+        valid = "\n  ".join(sorted(projects))
+        sys.exit(f"unknown project {args.project!r}\nconfigured projects:\n  {valid}")
+    print(f"  → restricted to project: {args.project}", file=sys.stderr)
+    return {args.project: projects[args.project]}
+
+
 if __name__ == "__main__":
-    pprint(load_projects())
+    pprint(select_projects())

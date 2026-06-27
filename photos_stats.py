@@ -1,11 +1,11 @@
 import json
 import sqlite3
 
-from project_registry import load_projects
+from project_registry import select_projects
 
-projects = load_projects()
+projects = select_projects()
 
-PHOTO_SOURCES = ["Google Takeout", "AndroidPhotoBackup", "IPad", "IPhone"]
+PHOTO_SOURCES = ["Google Takeout", "AndroidPhotoBackup", "IPad", "IPhone", "MacPictures"]
 
 
 def human_readable_size(size_bytes):

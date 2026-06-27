@@ -14,9 +14,9 @@ from datetime import datetime
 from datetime import timezone
 from pymobiledevice3.lockdown import create_using_usbmux
 from pymobiledevice3.services.afc import AfcService
-from project_registry import load_projects
+from project_registry import select_projects
 
-projects = load_projects()
+projects = select_projects()
 
 image_exts = (".heic", ".jpg", ".jpeg", ".png", ".dng", ".gif")
 movie_exts = (".mov", ".mp4", ".m4v")

@@ -13,9 +13,9 @@ import re
 from datetime import datetime, timezone
 
 import sqlite_utils
-from project_registry import load_projects
+from project_registry import select_projects
 
-projects = load_projects()
+projects = select_projects()
 
 ALGORITHM = "sha256"                   # checksum algorithm for export provenance (matches the manifest)
 _EPOCH_RE = re.compile(r"-(\d{10})-")  # the export's Unix epoch, embedded in the export zip filename
