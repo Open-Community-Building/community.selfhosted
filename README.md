@@ -1,8 +1,13 @@
 # community.selfhosted
 
-An inventory system for securing project management across multiple systems — plus
-a companion tool that turns personal archives (Claude conversation exports) into
-SQLite for exploration in Datasette.
+A self-hosted, open-source preservation system for individuals and communities who
+want to keep their own custody. Apply OAIS-style ingest, BagIt-shaped manifests,
+PREMIS-aligned events, and 3-2-1-1-0 compliance — then disseminate to audiences
+that scale from individual through project to public.
+
+The companion **community.memex** package turns personal exports (Claude
+conversations, Gmail Takeout) into SQLite for exploration in Datasette — one of
+the source-importers that feed this archive.
 
 Built using **Spec Driven Development (SDD)** — specifications are written first, implementation follows from specs.
 
@@ -42,7 +47,7 @@ Specs live in the `specs/` directory and are the source of truth for system beha
 community.selfhosted/
 ├── specs/                # Specifications — source of truth
 │
-├── project.yml           # Weasel / spaCy-projects workflow: commands + the `photos` & `claude` pipelines
+├── project.yml           # Weasel / spaCy-projects workflow: commands + pipelines
 ├── config.cfg            # Declarative configuration (projects root), resolved by spaCy's config system
 ├── requirements.txt      # Pinned runtime deps (sqlite-utils, spaCy/weasel, datasette, pymobiledevice3)
 ├── project_registry.py   # Registered project discovery + load_projects() / ensure_dirs() (used by every script)
