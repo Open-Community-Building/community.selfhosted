@@ -70,10 +70,12 @@ role, and verification state.
    source locations the project draws from. Bare `primary_storage` /
    `secondary_storage` paths remain accepted (resolved against the matching
    location's `mount_point`) so existing projects keep working.
-2. A project MAY add `archive_targets: [<location_id>, …]` — locations that hold
-   the project's archived copies (vs the live source). This is what makes
-   3-2-1-1-0 evaluable: compliance counts archive targets, not the (typically
-   single) live source.
+2. A project MAY add `archive_targets: [{location: <id>, path: <relative_path>}, …]`
+   — locations that hold the project's archived copies (vs the live source), each
+   entry naming the location and the path of the project's data **relative to
+   that location's `mount_point`**. One location can therefore hold copies of
+   many projects at distinct subpaths. This is what makes 3-2-1-1-0 evaluable:
+   compliance counts archive targets, not the (typically single) live source.
 3. A project's `config.json` carries `home_site: <string>` — the `site`
    identifier treated as on-site for the **off-site** compliance check. Declared
    per project (not globally) so different installs / collaborators can each

@@ -8,10 +8,13 @@ its iOS build, storage and battery.
 
 This is the iOS specialisation of [Location Identity](location_identity.md) — the
 `UniqueDeviceID` it reads is the **strong identifier** for `device`-medium
-locations, the same role `volume_uuid` plays for disks and `ssh_host_key_fingerprint`
-plays for cloud objects. The existing `source_UniqueDeviceID` field in iPhone/iPad
-project `config.json` files predates that generalisation and is kept as the
-backwards-compatibility path.
+locations, the same role `volume_uuid` + `media_serial` play for disks and the
+stable subaccount `host` URL plays for cloud objects. The existing
+`source_UniqueDeviceID` field in iPhone/iPad project `config.json` files predates
+that generalisation; per [Location Identity](location_identity.md) it is
+**migrated out** during the transition (no runtime fallback) — the UDID moves
+into a registered location's `identification.json` and the project references
+that location via `archive_targets`.
 
 ## Definitions
 
