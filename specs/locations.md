@@ -77,7 +77,9 @@ role, and verification state.
 ### Lifecycle events
 
 The location registry is timeless on its own; lifecycle is captured in an
-append-only events ledger at `~/selfhosted/archive.sqlite/events`:
+append-only events ledger at `~/selfhosted/archive/archive.sqlite` (the first
+cross-project SQLite — sibling of `photos/`, `locations/`, `story/`), table
+`events`:
 
 1. Event kinds: `acquired`, `mounted`, `migrated`, `verified`, `decommissioned`,
    `deaccessioned`, `restored`, `disseminated` (the last is for
@@ -95,13 +97,18 @@ For each project P, count over its `archive_targets` whose locations are current
 
 1. `copies` = number of distinct active locations
 2. `media` = number of distinct `medium` values
-3. `offsite` = at least one location whose `site` ≠ the configured home site
+3. `offsite` = at least one location whose `site` ≠ the project's `home_site`
 4. `offline` = at least one location whose `online_state` ∈ {`offline`, `immutable`}
 5. `all_verified` = every active location has a `verified` event within the
-   configured freshness window (default **90 days**)
+   freshness window (**90 days**)
+6. If the project has no active `archive_targets` (or `copies = 0`), the result
+   is **not yet evaluable**, not "non-compliant" — it is the unattempted state.
+   This is precisely the alarm 3-2-1-1-0 is meant to raise: "you have no
+   archive copies."
 
-P is **compliant** when `copies ≥ 3 AND media ≥ 2 AND offsite AND offline AND
-all_verified`.
+P is otherwise **compliant** when `copies ≥ 3 AND media ≥ 2 AND offsite AND
+offline AND all_verified`; falling short on any of those is **non-compliant**,
+with the specific failing legs reported so it's actionable.
 
 The reason compliance is **per project**, not per source location: source
 locations come and go (the iPhone is sold, a download volume is shucked, a Storage
@@ -112,14 +119,17 @@ project, with locations the means by which it's met.
 ## Inputs
 
 - `~/selfhosted/locations/<id>/location.json` per location.
-- Each project's `config.json` `sources` / `archive_targets` referencing location ids.
-- The events ledger (`~/selfhosted/archive.sqlite/events`).
+- Each project's `config.json`: `sources` / `archive_targets` referencing
+  location ids, plus `home_site`.
+- The events ledger (`~/selfhosted/archive/archive.sqlite`, table `events`).
 
 ## Outputs
 
 - A queryable registry of locations and links.
 - For each project, a compliance row: `(project_id, copies, media, offsite,
-  offline, all_verified, compliant)`.
+  offline, all_verified, status)` where `status` ∈ `compliant` /
+  `non_compliant` / `not_yet_evaluable`, with the specific failing legs named
+  when `non_compliant`.
 - A finding-aid view in Datasette joining manifest items → location → project →
   events, so for any item you can answer "which copies hold it, when were they
   last verified, when was the location acquired."
@@ -128,7 +138,14 @@ project, with locations the means by which it's met.
 
 - Location ids are stable; renaming a location is a `deaccession` + new
   `acquisition`, not an edit.
-- The events ledger is **append-only** — like the manifest, like git_logs.
+- The events ledger lives at `~/selfhosted/archive/archive.sqlite` and is
+  **append-only** — like the manifest, like git_logs.
+- `medium` is a **closed enum**; extending it is a spec change so the "distinct
+  media" count stays reliable.
+- `mount_point` is **declared**, not auto-discovered — a missing mount surfaces
+  as a configuration fact rather than a silent guess.
+- The verification freshness window is **90 days** (global, not per-location or
+  per-project — simpler and field-typical).
 - Backwards compatible with the current `primary_storage` /
   `secondary_storage`: when those are present, they resolve to a location's
   `mount_point` if a matching location exists; otherwise the bare path keeps
