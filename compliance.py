@@ -8,13 +8,17 @@ For each project, evaluate the backup strategy over its archive_targets:
 
 Compliance is **per project** (locations come and go; projects remain) and is
 evaluated over **materialised** archive_targets — those whose resolved path
-(`location.mount_point + target.path`) actually exists on disk today.
+actually exists today. For disk-medium locations that's a local `Path.exists()`;
+for cloud_object locations with an `ssh_alias` configured, it's an SFTP probe
+(`echo "cd <path>" | sftp -b - <alias>` → exit 0 iff the path exists). A cloud
+location without an `ssh_alias` can't be probed and is treated as not materialised.
 
-Read-only: no data files written. The **`verified`** leg requires the events
-ledger (`~/selfhosted/archive/archive.sqlite`), wired in a later step; until
-then it is reported as `n/a` and contributes a failing leg honestly.
+Read-only on data; the SFTP probe is a single short network round-trip per cloud
+target (~0.5 s). The **`verified`** leg reads `verified` events from
+`~/selfhosted/archive/archive.sqlite/events` against a 90-day freshness window.
 """
 
+import subprocess
 from pathlib import Path
 
 import archive_ledger
@@ -28,13 +32,45 @@ OFFLINE_STATES = {"offline", "immutable"}
 # global, simpler than per-location overrides and field-typical for preservation.
 FRESHNESS_DAYS = 90
 
+# Cloud probe timeout — single SFTP `cd` round-trip; ample for any sane network.
+PROBE_TIMEOUT = 15
+
+
+def _probe_cloud_path(location, path):
+    """SFTP probe: does `<path>` exist on the location's cloud server?
+
+    Returns (exists, note). `exists` is True iff the SFTP `cd <path>` succeeds.
+    Any failure path — no ssh_alias, network/auth error, timeout — returns False
+    with a `note` describing why (so the per-target output is honest about
+    *whether we could check*, not just the result).
+    """
+    alias = location.get("ssh_alias")
+    if not alias:
+        return False, "no ssh_alias in location.json — can't probe"
+    try:
+        proc = subprocess.run(
+            ["sftp", "-q", "-b", "-", "-o", "BatchMode=yes", alias],
+            input=f"cd {path}\n",
+            capture_output=True, text=True, timeout=PROBE_TIMEOUT,
+        )
+    except subprocess.TimeoutExpired:
+        return False, f"sftp probe timed out (> {PROBE_TIMEOUT}s)"
+    except OSError as exc:
+        return False, f"sftp probe failed: {exc}"
+    if proc.returncode == 0:
+        return True, None
+    return False, (proc.stderr.strip().splitlines()[-1]
+                   if proc.stderr.strip() else "path not found")
+
 
 def evaluate(project, locations):
     """Compute compliance for one project. Returns a dict of legs + status."""
     home_site = project.get("home_site", "home")
     targets = project.get("archive_targets", []) or []
 
-    # Resolve each declared archive_target and check whether its path exists on disk.
+    # Resolve each declared archive_target and check whether its path is materialised.
+    # Disks: local Path.exists() against mount_point + path.
+    # Cloud: SFTP probe via location.ssh_alias (single short round-trip per target).
     resolved = []
     for tgt in targets:
         loc_id = tgt["location"]
@@ -43,9 +79,18 @@ def evaluate(project, locations):
             resolved.append({"target": tgt, "exists": False,
                              "note": f"unknown_location:{loc_id}"})
             continue
-        full = Path(loc["mount_point"]) / tgt["path"]
-        resolved.append({"target": tgt, "location": loc,
-                         "full_path": full, "exists": full.exists()})
+        if loc["medium"] == "cloud_object":
+            exists, note = _probe_cloud_path(loc, tgt["path"])
+            display = f"{loc.get('ssh_alias', '?')}:{tgt['path']}"
+            entry = {"target": tgt, "location": loc, "full_path": display,
+                     "exists": exists}
+            if note:
+                entry["note"] = note
+            resolved.append(entry)
+        else:
+            full = Path(loc["mount_point"]) / tgt["path"]
+            resolved.append({"target": tgt, "location": loc,
+                             "full_path": full, "exists": full.exists()})
 
     materialised = [r for r in resolved if r.get("exists")]
     copies = len(materialised)
@@ -112,11 +157,14 @@ def render(rows):
         # there's anything actionable (failures or unknown locations).
         if row["failing"] or any("note" in r for r in row["resolved"]):
             for r in row["resolved"]:
-                if "note" in r:
-                    print(f"    ! {r['note']}")
+                if r.get("location") is None:
+                    # Unknown location id (typo in archive_targets) — the note is the whole story
+                    print(f"    ! {r.get('note', '?')}")
                 else:
                     tick = "✓" if r["exists"] else "✗"
                     print(f"    {tick} {r['target']['location']}: {r['full_path']}")
+                    if "note" in r:
+                        print(f"        ({r['note']})")
             if row["failing"]:
                 print(f"    ↳ failing: {', '.join(row['failing'])}")
     print()

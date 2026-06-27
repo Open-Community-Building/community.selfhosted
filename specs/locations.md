@@ -54,6 +54,13 @@ role, and verification state.
    - `history` — free-text custodial history (origin, transfers, why it exists)
    - `access_tier` — see [Dissemination](dissemination.md); constrains which
      audiences any project drawing from this location may serve
+   - `ssh_alias` — optional, **cloud_object only**: the `~/.ssh/config` Host
+     alias the system uses to reach this location (so credentials, port, and
+     identity file live in the SSH config). When present, compliance probes the
+     remote via SFTP (`echo "cd <path>" | sftp -b - <alias>`) to verify
+     materialisation. Without it, cloud targets show as not materialised because
+     the local `Path.exists()` check is structurally blind to SFTP-accessed
+     paths.
 2. Discovery mirrors the project registry: walk the directory, read each
    `location.json`, build a registry keyed by `id`. `project_registry.select_*` style.
 3. A location's directory also holds a sibling `identification.json` — the
