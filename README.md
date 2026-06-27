@@ -1,6 +1,6 @@
 # community.selfhosted
 
-A photo inventory system for securing photos across multiple systems — plus
+An inventory system for securing project management across multiple systems — plus
 a companion tool that turns personal archives (Claude conversation exports) into
 SQLite for exploration in Datasette.
 
@@ -21,7 +21,7 @@ Specs live in the `specs/` directory and are the source of truth for system beha
 
 | Spec | Status | Description                                                                                                     |
 |------|--------|-----------------------------------------------------------------------------------------------------------------|
-| [Configure Projects](specs/configure_projects.md) | Draft | Declare project configuration in `config.cfg`, resolved by spaCy's config system                                |
+| [Configure Projects](specs/configure_projects.md) | Live | Declare project configuration in `config.cfg`, resolved by spaCy's config system                                |
 | [Device Dump](specs/ios_file_stat.md) | Draft | Dump file stats from iOS devices                                                                                |
 | [Device Info](specs/ios_identification.md) | Draft | Report a connected iOS device's identity, firmware, battery and storage                                         |
 | [Photo Registry](specs/photo-registry.md) | Draft | Discover and catalog photo projects from configured sources                                                     |
@@ -32,7 +32,7 @@ Specs live in the `specs/` directory and are the source of truth for system beha
 | [Fixity & Change Detection](specs/fixity.md) | Draft | Detect additions / losses / silent content changes across ingests by comparing checksums (fixity checking)      |
 | [Claude Ingest](specs/claude_ingest.md) | Draft | Unpack new Claude export zips from claude_ingest/ into UTC-named fetched/ snapshots (only conversations.json) |
 | [Claude Prompts](specs/claude_prompts.md) | Draft | Convert the latest Claude snapshot to SQLite and record the conversations.json SHA-256 provenance |
-| [Locations](specs/locations.md) | Draft | Registry of storage locations with copy role / medium / site / online state — 3-2-1-1-0 evaluated per project |
+| [Locations](specs/locations.md) | Live | Registry of storage locations with copy role / medium / site / online state — 3-2-1-1-0 evaluated per project |
 | [Location Identity](specs/location_identity.md) | Draft | Per-medium hardware identification (Volume UUID / iOS UDID / SSH host key) — fixity for the storage container, generalising the iOS UDID match |
 | [Dissemination](specs/dissemination.md) | Draft | Build per-audience DIPs (self/family/friends/project/public) as BagIt bags, deliver via SFTP to Hetzner Storage Box subaccounts |
 
@@ -91,6 +91,7 @@ weasel run claude
 # are equivalent:
 spacy project run resolve_config  # discover & print the configured projects
 spacy project run ensure_dirs     # create each project's fetched/ & processed/ dirs
+spacy project run compliance      # per-project 3-2-1-1-0 status (read-only)
 spacy project run device_info     # print a connected iOS device's identity, battery, disk
 spacy project run device_files    # dump file stats from a connected iOS device (AFC)
 spacy project run md5             # MD5 + size checksum every fetched file

@@ -17,6 +17,7 @@ import spacy
 from confection import Config
 
 DEFAULT_CONFIG = Path(__file__).with_name("config.cfg")
+LOCATIONS_ROOT = Path("~/selfhosted/locations").expanduser()
 
 
 @spacy.registry.misc("photo_projects.discover.v1")
@@ -57,6 +58,54 @@ def ensure_dirs(projects: dict) -> None:
     for project in projects.values():
         project["fetched_folder"].mkdir(parents=True, exist_ok=True)
         project["processed_folder"].mkdir(parents=True, exist_ok=True)
+
+
+@spacy.registry.misc("locations.discover.v1")
+def discover_locations(root: str) -> dict:
+    """Discover locations under `root` (one folder per location).
+
+    Reads each location's `location.json` (declared metadata) and, when present,
+    `identification.json` (extracted hardware identity). Pure: creates no files.
+    See specs/locations.md and specs/location_identity.md.
+    """
+    root = Path(root).expanduser()
+    locations: dict = {}
+    if not root.is_dir():
+        return locations
+    for folder in sorted(f for f in root.iterdir()
+                         if f.is_dir() and not f.name.startswith(".")):
+        location_file = folder / "location.json"
+        if not location_file.is_file():
+            continue
+        location = json.loads(location_file.read_text())
+        location["id"] = folder.name
+        location["location_folder"] = folder
+        ident_file = folder / "identification.json"
+        location["identification"] = (
+            json.loads(ident_file.read_text()) if ident_file.is_file() else None)
+        locations[folder.name] = location
+    return locations
+
+
+def load_locations(root: Path = LOCATIONS_ROOT) -> dict:
+    """Return the discovered locations registry (empty dict when the root is absent)."""
+    return discover_locations(str(root))
+
+
+def select_locations(argv=None, locations=None) -> dict:
+    """Same precedence as select_projects: `--location <id>` > `LOCATION` env > all."""
+    if locations is None:
+        locations = load_locations()
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument("-l", "--location", default=os.environ.get("LOCATION"))
+    args, _ = parser.parse_known_args(argv)
+    if not args.location:
+        return locations
+    if args.location not in locations:
+        valid = "\n  ".join(sorted(locations)) or "(none configured yet)"
+        sys.exit(f"unknown location {args.location!r}\nconfigured locations:\n  {valid}")
+    print(f"  → restricted to location: {args.location}", file=sys.stderr)
+    return {args.location: locations[args.location]}
 
 
 def select_projects(argv=None, projects=None) -> dict:

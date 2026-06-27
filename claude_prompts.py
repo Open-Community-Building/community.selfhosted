@@ -13,9 +13,11 @@ import re
 from datetime import datetime, timezone
 
 import sqlite_utils
-from project_registry import select_projects
+from location_identity import verify_pipeline_location
+from project_registry import load_locations, select_projects
 
 projects = select_projects()
+locations = load_locations()
 
 ALGORITHM = "sha256"                   # checksum algorithm for export provenance (matches the manifest)
 _EPOCH_RE = re.compile(r"-(\d{10})-")  # the export's Unix epoch, embedded in the export zip filename
@@ -190,6 +192,7 @@ def main():
         project = projects[projectid]
         if project["source"] not in ["Prompts"]:
             continue
+        verify_pipeline_location(project, locations)  # silent precondition; refuses on identity drift
         run(project)
 
 

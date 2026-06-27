@@ -11,10 +11,13 @@ previous ingest is reported at the end of each run.
 import os
 from datetime import datetime, timezone
 
+import archive_ledger
 import manifest
-from project_registry import select_projects
+from location_identity import pipeline_location_for
+from project_registry import load_locations, select_projects
 
 projects = select_projects()
+locations = load_locations()
 
 PHOTO_SOURCES = ["Google Takeout", "AndroidPhotoBackup", "IPad", "IPhone", 'MacPictures']
 
@@ -70,6 +73,21 @@ def process(project):
     report = manifest.fixity_check(db_path)
     manifest.record_events(db_path, report)     # append this ingest's events to the audit log
     print(manifest.format_report(report))
+
+    # On a clean fixity_check (no fixity_failure, no loss), record a `verified`
+    # event in the cross-project ledger for the pipeline's location — that is
+    # what feeds compliance.py's `verified` leg (the "0 errors" of 3-2-1-1-0).
+    # A first ingest has nothing to compare against → no event yet.
+    if report and not report["fixity_failure"] and not report["loss"]:
+        location, _ = pipeline_location_for(project, locations)
+        if location is not None:
+            archive_ledger.record_event(
+                kind="verified",
+                location_id=location["id"],
+                project_id=project["id"],
+                agent="manifest.py",
+                notes=f"fixity_check clean — ingest {ingest_id} ({n} items)",
+            )
 
 
 def main():

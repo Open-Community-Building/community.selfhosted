@@ -16,9 +16,11 @@ import shutil
 import zipfile
 from datetime import datetime, timezone
 
-from project_registry import select_projects
+from location_identity import verify_pipeline_location
+from project_registry import load_locations, select_projects
 
 projects = select_projects()
+locations = load_locations()
 
 NEEDED = "conversations.json"           # the only member the converter consumes
 _EPOCH_RE = re.compile(r"-(\d{10})-")   # the export's Unix epoch, embedded in the zip name
@@ -77,6 +79,7 @@ def main():
         project = projects[projectid]
         if project["source"] not in ["Prompts"]:
             continue
+        verify_pipeline_location(project, locations)  # silent precondition; refuses on identity drift
         run(project)
 
 

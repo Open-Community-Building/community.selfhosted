@@ -50,6 +50,24 @@ commands:
     help: "Create each project's fetched/ and processed/ directories. Explicit side-effect step — config resolution itself never creates directories. Restrict to one project with `PROJECT=<id> weasel run ensure_dirs`."
     script:
       - "${vars.python} -c \"import project_registry as r; r.ensure_dirs(r.select_projects()); print('ensured fetched/ and processed/')\""
+
+  - name: "compliance"
+    help: "Per-project 3-2-1-1-0 compliance check: copies / media / off-site / off-line / verified, with named failing legs. Read-only over the locations registry + project archive_targets. See specs/locations.md."
+    script:
+      - "${vars.python} compliance.py"
+    deps:
+      - "compliance.py"
+      - "project_registry.py"
+      - "config.cfg"
+
+  - name: "verify_identity"
+    help: "Verify each registered location's hardware identity (volume_uuid / iOS UDID / declared host) against its identification.json. Read-only. See specs/location_identity.md."
+    script:
+      - "${vars.python} location_identity.py"
+    deps:
+      - "location_identity.py"
+      - "project_registry.py"
+      - "config.cfg"
     deps:
       - "project_registry.py"
       - "config.cfg"
