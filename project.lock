@@ -4,7 +4,7 @@ claude_web:
     - python claude_web.py
   deps:
     - path: claude_web.py
-      md5: fd7f46a81237a8921ecdb7063bc4939e
+      md5: 1feee76c7058e4dd64f43bba5b159752
     - path: project_registry.py
       md5: f72cda9afdd43d5353395addf781b2f8
     - path: config.cfg
@@ -81,7 +81,7 @@ claude_web_ingest:
     - python claude_web_ingest.py
   deps:
     - path: claude_web_ingest.py
-      md5: d5a9ffae85ecdb7e41dcc3c21b588a1a
+      md5: 1d299f08f5b0a70bd01c8235443bc22b
     - path: project_registry.py
       md5: f72cda9afdd43d5353395addf781b2f8
     - path: config.cfg

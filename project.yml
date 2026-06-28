@@ -29,8 +29,9 @@ workflows:
     - manifest
     - metadata
     - stats
-  # Acquire new Claude exports from claude_web_ingest/, then convert the latest to SQLite.
-  claude_web:
+  # Acquire new Claude Web exports, convert latest snapshot to SQLite, run content fixity.
+  # Workflow name differs from the converter command so they don't collide (weasel rule).
+  claude:
     - claude_web_ingest
     - claude_web
 

@@ -90,7 +90,7 @@ pip install -r requirements.txt   # first-time setup: sqlite-utils, spaCy/weasel
 # Run the whole photo pipeline (ensure_dirs → md5 → manifest → metadata → stats):
 weasel run photos
 # …or the Claude pipeline (ingest new claude_web_ingest → convert latest → SQLite):
-weasel run claude_web
+weasel run claude
 
 # …or run any single command — `weasel run <name>` and `spacy project run <name>`
 # are equivalent:
@@ -110,7 +110,7 @@ spacy project run claude_web  # convert the latest Claude snapshot → conversat
 
 ### Restrict to one project
 
-Any stage (and the `photos` / `claude_web` workflows) accepts a project selector — useful
+Any stage (and the `photos` / `claude` workflows) accepts a project selector — useful
 when you want to run a pipeline against a single project rather than every configured
 one. See [Configure Projects](specs/configure_projects.md#project-selection).
 
@@ -120,6 +120,6 @@ python claude_web.py --project claude_web
 
 # Via weasel (can't forward args): use the PROJECT env var
 PROJECT=googlephotos_takeout weasel run manifest
-PROJECT=claude_web weasel run claude_web         # whole workflow, one project
+PROJECT=claude_web weasel run claude             # whole workflow, one project
 spacy project run git_logs        # git commit history → SQLite (append-only; flags history rewrites)
 ```
