@@ -16,7 +16,7 @@ resolve_config:
     - python project_registry.py
   deps:
     - path: project_registry.py
-      md5: f72cda9afdd43d5353395addf781b2f8
+      md5: eccc61ebd1fa18ddd8e6f5d1efd53eae
     - path: config.cfg
       md5: 58d64ee0c7d1ab1a0fe25c90c961251f
   outs: []
@@ -25,11 +25,7 @@ ensure_dirs:
   script:
     - python -c "import project_registry as r; r.ensure_dirs(r.select_projects());
       print('ensured fetched/ and processed/')"
-  deps:
-    - path: project_registry.py
-      md5: 16a1d23f396a19974411d08d2eaa3241
-    - path: config.cfg
-      md5: 218b9090c596d20368c68201407fabd4
+  deps: []
   outs: []
 device_info:
   cmd: python -m weasel run device_info
@@ -45,11 +41,11 @@ md5:
     - python photos_md5.py
   deps:
     - path: photos_md5.py
-      md5: 0927895056ebc560b7f6ea82b58b826e
+      md5: b769c62c8757204665a9dd8c08d5e449
     - path: project_registry.py
-      md5: 2e06ae4ff9e7a87210fdf3bdcc2a4f05
+      md5: eccc61ebd1fa18ddd8e6f5d1efd53eae
     - path: config.cfg
-      md5: 218b9090c596d20368c68201407fabd4
+      md5: 58d64ee0c7d1ab1a0fe25c90c961251f
   outs: []
 metadata:
   cmd: python -m weasel run metadata
@@ -121,7 +117,7 @@ verify_identity:
     - path: location_identity.py
       md5: d4f9877cef06926d76eab8df4b3c5c74
     - path: project_registry.py
-      md5: f72cda9afdd43d5353395addf781b2f8
+      md5: eccc61ebd1fa18ddd8e6f5d1efd53eae
     - path: config.cfg
       md5: 58d64ee0c7d1ab1a0fe25c90c961251f
   outs: []
@@ -131,9 +127,9 @@ compliance:
     - python compliance.py
   deps:
     - path: compliance.py
-      md5: 55576eae66728646b507084506bf9d41
+      md5: 005c519ca471a9ea5b66e51dee5ab3f2
     - path: project_registry.py
-      md5: f72cda9afdd43d5353395addf781b2f8
+      md5: eccc61ebd1fa18ddd8e6f5d1efd53eae
     - path: config.cfg
       md5: 58d64ee0c7d1ab1a0fe25c90c961251f
   outs: []
