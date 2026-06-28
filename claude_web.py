@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Convert a Claude conversation export (conversations.json) into SQLite for Datasette,
-and run **per-message content fixity** across snapshots — see specs/claude_prompts.md.
+and run **per-message content fixity** across snapshots — see specs/claude_web.md.
 
 Two passes per run:
 
@@ -9,7 +9,7 @@ Two passes per run:
    latest snapshot's conversations.json. Plumbing is sqlite-utils.
 
 2. **Content fixity** — maintain an append-only per-message manifest at
-   `<project>/claude_manifest/manifest.sqlite`. Each Claude snapshot becomes an
+   `<project>/claude_web_manifest/manifest.sqlite`. Each Claude snapshot becomes an
    ingest; each *message* is an item with locator = message_uuid and checksum =
    SHA-256 of canonical message content (sender + text + content blocks +
    attachments + files + timestamps). Fixity_check across the two latest snapshots
@@ -228,15 +228,15 @@ def _content_fixity(project, snapshots):
     fixity_check across the latest two. Returns the fixity report (or None on
     first-ingest, when there is nothing to compare).
     """
-    manifest_db = project["project_folder"] / "claude_manifest" / "manifest.sqlite"
+    manifest_db = project["project_folder"] / "claude_web_manifest" / "manifest.sqlite"
     already = _ingested_snapshots(manifest_db)
     to_ingest = [s for s in snapshots if s.name not in already]
     if not to_ingest:
-        print(f"claude_manifest: no new snapshots to ingest "
+        print(f"claude_web_manifest: no new snapshots to ingest "
               f"(manifest holds {len(already)})")
     else:
         if not already and len(to_ingest) > 1:
-            print(f"claude_manifest: first run — backfilling "
+            print(f"claude_web_manifest: first run — backfilling "
                   f"{len(to_ingest)} snapshot(s) chronologically")
         for snap in to_ingest:
             data = json.loads((snap / "conversations.json").read_bytes())
@@ -274,7 +274,7 @@ def _emit_verified_for_project(project, snapshot_name):
                 f"{snapshot_name}; identical bytes via rsync chain")
         archive_ledger.record_event(
             kind="verified", location_id=loc["id"], project_id=project["id"],
-            agent="claude_prompts.py", notes=note)
+            agent="claude_web.py", notes=note)
 
 
 def run(project):
@@ -284,7 +284,7 @@ def run(project):
     if not conversations_json.is_file():
         print(f"{project['id']}: no conversations.json under {fetched}; skipping")
         return
-    out = project["project_folder"] / "claude_prompts" / "conversations.sqlite"
+    out = project["project_folder"] / "claude_web" / "conversations.sqlite"
     out.parent.mkdir(parents=True, exist_ok=True)
 
     raw = conversations_json.read_bytes()

@@ -2,14 +2,14 @@
 
 ## Purpose
 
-Turn a raw Claude export, dropped into a project's `claude_ingest/`, into a clean,
+Turn a raw Claude export, dropped into a project's `claude_web_ingest/`, into a clean,
 UTC-named **snapshot** under `fetched/` containing only the file the converter needs
 — `conversations.json`. Adding a new export is "drop the zip and run": no manual
 unzipping, no clutter.
 
 ## Definitions
 
-- **Download**: a raw Claude export zip in `<project>/claude_ingest/`, named
+- **Download**: a raw Claude export zip in `<project>/claude_web_ingest/`, named
   `data-…-<epoch>-…-batch-0000.zip`, where `<epoch>` is the export's Unix generation
   time. `conversations.json` is a top-level member.
 - **Snapshot**: `<project>/fetched/<YYYY-MM-DD-HH-MM>/` — an immutable per-export
@@ -23,7 +23,7 @@ unzipping, no clutter.
 ### Detection
 
 1. Process each project whose `source` is `Claude Web Prompts`.
-2. Scan `<project>/claude_ingest/` for export zips.
+2. Scan `<project>/claude_web_ingest/` for export zips.
 
 ### Snapshot creation
 
@@ -33,7 +33,7 @@ unzipping, no clutter.
 2. If `fetched/<name>/conversations.json` already exists, **skip**. Ingestion is
    idempotent: re-running, or re-dropping the same export, does nothing.
 3. Otherwise create `fetched/<name>/` and extract **only** `conversations.json` from
-   the zip into it. The raw download is left in `claude_ingest/` as the archived original.
+   the zip into it. The raw download is left in `claude_web_ingest/` as the archived original.
 
 ### Robustness
 
@@ -43,25 +43,25 @@ unzipping, no clutter.
 
 ## Inputs
 
-- A `Claude Web Prompts` project with a `claude_ingest/` folder holding one or more raw export zips.
+- A `Claude Web Prompts` project with a `claude_web_ingest/` folder holding one or more raw export zips.
 
 ## Outputs
 
 - One `fetched/<YYYY-MM-DD-HH-MM>/conversations.json` per export — consumed by
-  [Claude Web Prompts](claude_prompts.md).
+  [Claude Web Prompts](claude_web.md).
 
 ## Constraints
 
 - The snapshot is named by the **UTC** export epoch, not any file mtime.
 - Only `conversations.json` is extracted; the rest of the export stays zipped in
-  `claude_ingest/`, which is never deleted (it is the raw archive).
+  `claude_web_ingest/`, which is never deleted (it is the raw archive).
 - Idempotent and read-only on the download — extraction never modifies the zip.
 
 ## Open Questions
 
 - Fully-automatic ingestion: wrap the command in a `launchd` / `fswatch` watch on
-  `claude_ingest/`, or is running it (directly or on a schedule) enough?
+  `claude_web_ingest/`, or is running it (directly or on a schedule) enough?
 - Extract more than `conversations.json` if a future feature needs it (e.g.
   `memories.json`, `projects/`), or keep snapshots minimal?
-- Prune or relocate a download once ingested, or keep `claude_ingest/` as the full raw
+- Prune or relocate a download once ingested, or keep `claude_web_ingest/` as the full raw
   archive (current)?

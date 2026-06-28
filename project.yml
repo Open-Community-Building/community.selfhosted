@@ -29,10 +29,10 @@ workflows:
     - manifest
     - metadata
     - stats
-  # Acquire new Claude exports from claude_ingest/, then convert the latest to SQLite.
-  claude:
-    - claude_ingest
-    - claude_prompts
+  # Acquire new Claude exports from claude_web_ingest/, then convert the latest to SQLite.
+  claude_web:
+    - claude_web_ingest
+    - claude_web
 
 # Project commands. Trigger any of them with `weasel run <name>`.
 # Commands have no static `outputs` because each writes per-project files whose
@@ -131,21 +131,21 @@ commands:
       - "project_registry.py"
       - "config.cfg"
 
-  - name: "claude_ingest"
-    help: "Unpack new Claude export zips from each Claude Web Prompts project's claude_ingest/ into UTC-named fetched/<ts>/ snapshots (only conversations.json). See specs/claude_ingest.md."
+  - name: "claude_web_ingest"
+    help: "Unpack new Claude export zips from each Claude Web Prompts project's claude_web_ingest/ into UTC-named fetched/<ts>/ snapshots (only conversations.json). See specs/claude_web_ingest.md."
     script:
-      - "${vars.python} claude_ingest.py"
+      - "${vars.python} claude_web_ingest.py"
     deps:
-      - "claude_ingest.py"
+      - "claude_web_ingest.py"
       - "project_registry.py"
       - "config.cfg"
 
-  - name: "claude_prompts"
-    help: "Convert the latest Claude snapshot (fetched/<ts>/conversations.json) into conversations.sqlite, recording the conversations.json SHA-256 provenance. See specs/claude_prompts.md."
+  - name: "claude_web"
+    help: "Convert the latest Claude snapshot (fetched/<ts>/conversations.json) into conversations.sqlite, recording the conversations.json SHA-256 provenance. See specs/claude_web.md."
     script:
-      - "${vars.python} claude_prompts.py"
+      - "${vars.python} claude_web.py"
     deps:
-      - "claude_prompts.py"
+      - "claude_web.py"
       - "project_registry.py"
       - "config.cfg"
 

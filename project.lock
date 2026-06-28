@@ -1,9 +1,9 @@
-claude_prompts:
-  cmd: python -m weasel run claude_prompts
+claude_web:
+  cmd: python -m weasel run claude_web
   script:
-    - python claude_prompts.py
+    - python claude_web.py
   deps:
-    - path: claude_prompts.py
+    - path: claude_web.py
       md5: fd7f46a81237a8921ecdb7063bc4939e
     - path: project_registry.py
       md5: f72cda9afdd43d5353395addf781b2f8
@@ -75,12 +75,12 @@ git_logs:
     - path: config.cfg
       md5: 218b9090c596d20368c68201407fabd4
   outs: []
-claude_ingest:
-  cmd: python -m weasel run claude_ingest
+claude_web_ingest:
+  cmd: python -m weasel run claude_web_ingest
   script:
-    - python claude_ingest.py
+    - python claude_web_ingest.py
   deps:
-    - path: claude_ingest.py
+    - path: claude_web_ingest.py
       md5: d5a9ffae85ecdb7e41dcc3c21b588a1a
     - path: project_registry.py
       md5: f72cda9afdd43d5353395addf781b2f8

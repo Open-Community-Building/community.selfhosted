@@ -15,8 +15,8 @@ export is detectable.
   `conversations.json` plus `users.json`, `memories.json`, `projects/`, etc.
 - **Snapshot**: one export's `conversations.json` kept immutably under
   `fetched/<YYYY-MM-DD-HH-MM>/`, the folder named for the export's **embedded epoch**
-  (UTC). Produced by [Claude Ingest](claude_ingest.md) from a raw download; the raw
-  zip itself stays in `claude_ingest/`. The epoch is the canonical temporal key (file
+  (UTC). Produced by [Claude Web Prompts Ingest](claude_web_ingest.md) from a raw download; the raw
+  zip itself stays in `claude_web_ingest/`. The epoch is the canonical temporal key (file
   mtimes are copy-unstable).
 - **Checksum**: the SHA-256 of the `conversations.json` a build consumed — its
   provenance / fixity value, recorded in the database. Same algorithm as the
@@ -26,11 +26,11 @@ export is detectable.
 
 ### Snapshots
 
-1. Snapshots are produced by [Claude Ingest](claude_ingest.md): a raw export dropped
-   in `claude_ingest/` becomes `fetched/<YYYY-MM-DD-HH-MM>/conversations.json`, the folder
+1. Snapshots are produced by [Claude Ingest](claude_web_ingest.md): a raw export dropped
+   in `claude_web_ingest/` becomes `fetched/<YYYY-MM-DD-HH-MM>/conversations.json`, the folder
    named from the export's embedded epoch (UTC), so folders sort chronologically.
 2. Snapshots are immutable and hold only `conversations.json`; the raw zip stays in
-   `claude_ingest/`.
+   `claude_web_ingest/`.
 
 ### Selection
 
@@ -60,7 +60,7 @@ export is detectable.
 ### Content fixity across snapshots
 
 1. After conversion, an append-only **per-message manifest** is maintained at
-   `<project>/claude_manifest/manifest.sqlite` — each snapshot becomes one
+   `<project>/claude_web_manifest/manifest.sqlite` — each snapshot becomes one
    `ingests` row (keyed by snapshot name in the `source` field), and each message
    becomes one `items` row with locator = `message_uuid` and checksum = SHA-256
    over canonical-JSON of the message body (`sender`, `text`, `content`,
@@ -103,10 +103,10 @@ export is detectable.
 
 ## Outputs
 
-- `<project_folder>/claude_prompts/conversations.sqlite` — the conversation tables and
+- `<project_folder>/claude_web/conversations.sqlite` — the conversation tables and
   their FTS indexes, plus a one-row `export` provenance table `(snapshot, sha256,
   algorithm, size_bytes, conversation_count, exported_at, imported_at)`.
-- `<project_folder>/claude_manifest/manifest.sqlite` — append-only per-message
+- `<project_folder>/claude_web_manifest/manifest.sqlite` — append-only per-message
   manifest, one ingest row per snapshot, items keyed by `message_uuid`. Drives the
   content-fixity check.
 - A printed fixity report after each run (`added`, `unchanged`, `fixity_failure`,

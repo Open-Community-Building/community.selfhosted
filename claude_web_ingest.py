@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
-Acquire Claude exports — see specs/claude_ingest.md.
+Acquire Claude exports — see specs/claude_web_ingest.md.
 
-Each `Claude Web Prompts` project has a `claude_ingest/` drop-zone for raw export zips
+Each `Claude Web Prompts` project has a `claude_web_ingest/` drop-zone for raw export zips
 (`data-…-<epoch>-…-batch-0000.zip`). For any download not yet unpacked, create a
 UTC-named snapshot under `fetched/` holding only the file the converter needs,
 `conversations.json`. The <epoch> in the filename (the export's Unix generation
 time) names the snapshot, so folders sort chronologically and carry the canonical
 export time. Idempotent: a download whose snapshot already exists is skipped; the
-raw zip is left in `claude_ingest/` as the archived original.
+raw zip is left in `claude_web_ingest/` as the archived original.
 """
 
 import re
@@ -64,14 +64,14 @@ def ingest_zip(zip_path, fetched):
 
 
 def run(project):
-    claude_ingest = project["project_folder"] / "claude_ingest"
+    claude_web_ingest = project["project_folder"] / "claude_web_ingest"
     fetched = project["project_folder"] / "fetched"
-    if not claude_ingest.is_dir():
-        print(f"{project['id']}: no claude_ingest/ ; skipping")
+    if not claude_web_ingest.is_dir():
+        print(f"{project['id']}: no claude_web_ingest/ ; skipping")
         return
-    zips = sorted(claude_ingest.glob("*.zip"))
+    zips = sorted(claude_web_ingest.glob("*.zip"))
     new = sum(ingest_zip(z, fetched) for z in zips)
-    print(f"{project['id']}: {len(zips)} export(s) in claude_ingest/, {new} newly unpacked")
+    print(f"{project['id']}: {len(zips)} export(s) in claude_web_ingest/, {new} newly unpacked")
 
 
 def main():

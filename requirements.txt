@@ -12,7 +12,7 @@
 #
 # Bump a pin only after re-running the pipeline against it.
 
-# SQLite plumbing for the importers (claude_prompts.py, manifest.py, git_logs.py)
+# SQLite plumbing for the importers (claude_web.py, manifest.py, git_logs.py)
 sqlite-utils==3.39
 
 # Project registry + workflow runner: config.cfg resolved via spaCy's config
