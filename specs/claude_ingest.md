@@ -22,7 +22,7 @@ unzipping, no clutter.
 
 ### Detection
 
-1. Process each project whose `source` is `Prompts`.
+1. Process each project whose `source` is `Claude Web Prompts`.
 2. Scan `<project>/claude_ingest/` for export zips.
 
 ### Snapshot creation
@@ -43,12 +43,12 @@ unzipping, no clutter.
 
 ## Inputs
 
-- A `Prompts` project with a `claude_ingest/` folder holding one or more raw export zips.
+- A `Claude Web Prompts` project with a `claude_ingest/` folder holding one or more raw export zips.
 
 ## Outputs
 
 - One `fetched/<YYYY-MM-DD-HH-MM>/conversations.json` per export — consumed by
-  [Claude Prompts](claude_prompts.md).
+  [Claude Web Prompts](claude_prompts.md).
 
 ## Constraints
 

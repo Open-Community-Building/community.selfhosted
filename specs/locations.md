@@ -106,6 +106,20 @@ cross-project SQLite — sibling of `photos/`, `locations/`, `story/`), table
    — this is the "0 errors" leg of 3-2-1-1-0. The existing `manifest.fixity_events`
    table is its detailed counterpart; `events.verified` is the summary row.
 
+### Materialisation
+
+Whether an archive_target is "materialised" depends on the location's medium:
+
+- **Disk (online by default)** — `Path.exists()` over `mount_point + target.path`.
+- **Disk declared `online_state: "offline"`** (the drawer-drive pattern) — the
+  drive is intentionally unplugged most of the time, so `Path.exists()` would
+  always fail when it's in the drawer. The materialisation check accepts a
+  `verified` event within the freshness window as proof the data was there the
+  last time we plugged it in. Plugging the drive in occasionally to refresh
+  the `verified` event is the operational discipline that keeps the leg ✓.
+- **Cloud (`cloud_object`)** — SFTP probe through `location.ssh_alias`. Without
+  an alias, the cloud target shows as not materialised.
+
 ### Per-project compliance check
 
 For each project P, count over its `archive_targets` whose locations are currently

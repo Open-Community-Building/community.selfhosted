@@ -132,7 +132,7 @@ commands:
       - "config.cfg"
 
   - name: "claude_ingest"
-    help: "Unpack new Claude export zips from each Prompts project's claude_ingest/ into UTC-named fetched/<ts>/ snapshots (only conversations.json). See specs/claude_ingest.md."
+    help: "Unpack new Claude export zips from each Claude Web Prompts project's claude_ingest/ into UTC-named fetched/<ts>/ snapshots (only conversations.json). See specs/claude_ingest.md."
     script:
       - "${vars.python} claude_ingest.py"
     deps:

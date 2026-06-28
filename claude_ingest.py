@@ -2,7 +2,7 @@
 """
 Acquire Claude exports — see specs/claude_ingest.md.
 
-Each `Prompts` project has a `claude_ingest/` drop-zone for raw export zips
+Each `Claude Web Prompts` project has a `claude_ingest/` drop-zone for raw export zips
 (`data-…-<epoch>-…-batch-0000.zip`). For any download not yet unpacked, create a
 UTC-named snapshot under `fetched/` holding only the file the converter needs,
 `conversations.json`. The <epoch> in the filename (the export's Unix generation
@@ -77,7 +77,7 @@ def run(project):
 def main():
     for projectid in projects.keys():
         project = projects[projectid]
-        if project["source"] not in ["Prompts"]:
+        if project["source"] not in ["Claude Web Prompts"]:
             continue
         verify_pipeline_location(project, locations)  # silent precondition; refuses on identity drift
         run(project)

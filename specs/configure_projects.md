@@ -82,7 +82,7 @@ replaces the hand-written `config.py` while preserving the project registry that
 ### Per-Project Pipeline
 
 1. Each project's `config.json` declares a `source` (e.g. `IPhone`, `IPad`,
-   `Prompts`) that identifies which pipeline applies to it.
+   `Claude Web Prompts`) that identifies which pipeline applies to it.
 2. A stage skips projects whose `source` it does not handle, so a single command
    run over the registry only processes the relevant projects.
 3. A project's storage homes MAY be declared as a `sources: [<location_id>, …]`

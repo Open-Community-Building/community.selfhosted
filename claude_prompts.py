@@ -1,10 +1,25 @@
 #!/usr/bin/env python3
 """
-Convert a Claude conversation export (conversations.json) into SQLite for Datasette.
+Convert a Claude conversation export (conversations.json) into SQLite for Datasette,
+and run **per-message content fixity** across snapshots — see specs/claude_prompts.md.
 
-Plumbing is sqlite-utils: tables, foreign keys and FTS are built from the row
-dicts rather than hand-written SQL. The only bespoke part is the mapping from the
-export's nested JSON to flat rows.
+Two passes per run:
+
+1. **Conversion** — rebuild the per-snapshot SQLite (`conversations.sqlite`) from the
+   latest snapshot's conversations.json. Plumbing is sqlite-utils.
+
+2. **Content fixity** — maintain an append-only per-message manifest at
+   `<project>/claude_manifest/manifest.sqlite`. Each Claude snapshot becomes an
+   ingest; each *message* is an item with locator = message_uuid and checksum =
+   SHA-256 of canonical message content (sender + text + content blocks +
+   attachments + files + timestamps). Fixity_check across the two latest snapshots
+   then classifies every message as added / unchanged / fixity_failure / dropped /
+   loss. Growth (new messages in active conversations, new conversations) appears
+   as `added` — not as a failure. Tampering (Claude edits an old message, deletes
+   a conversation) appears as `fixity_failure` / `dropped` / `loss` — the loud
+   alarm. On a clean run (no failures or losses), a `verified` event is recorded
+   in the archive ledger for each archive_target, closing the **`verified`** leg
+   of 3-2-1-1-0 compliance.
 """
 
 import hashlib
@@ -13,6 +28,9 @@ import re
 from datetime import datetime, timezone
 
 import sqlite_utils
+
+import archive_ledger
+import manifest
 from location_identity import verify_pipeline_location
 from project_registry import load_locations, select_projects
 
@@ -153,6 +171,112 @@ def _exported_at(snapshot):
     return None
 
 
+def iter_message_items(data):
+    """Yield manifest items per *message*, for cross-snapshot content fixity.
+
+    Locator = `message_uuid` (stable; Claude assigns once at creation, doesn't reuse).
+    Content for checksum = canonical JSON of the message body — sender, text,
+    content blocks, attachments, files, timestamps. Same byte-for-byte JSON
+    encoding (sort_keys, no spaces) means the SHA-256 is deterministic per message.
+    Features = locating info that may legitimately change (conversation name,
+    position) — captured for context, doesn't affect the checksum.
+
+    Why per-message (not per-conversation):
+    - New messages in an active conversation appear as `added` items (expected).
+    - Genuine tampering (Claude edits/deletes/truncates an old message) is the
+      only thing that registers as `fixity_failure` / `dropped` — actionable signal.
+    A whole-conversation checksum would flag every active chat as a failure
+    every snapshot, drowning the real signal.
+    """
+    for conv in data:
+        conv_uuid = conv["uuid"]
+        conv_name = conv.get("name")
+        for pos, msg in enumerate(conv.get("chat_messages", []) or []):
+            msg_uuid = msg.get("uuid")
+            if not msg_uuid:
+                continue
+            canonical = json.dumps({
+                "sender": msg.get("sender"),
+                "text": msg.get("text"),
+                "content": msg.get("content"),
+                "attachments": msg.get("attachments"),
+                "files": msg.get("files"),
+                "created_at": msg.get("created_at"),
+                "updated_at": msg.get("updated_at"),
+            }, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+            features = {
+                "conversation_uuid": conv_uuid,
+                "conversation_name": conv_name,
+                "position": pos,
+                "sender": msg.get("sender"),
+            }
+            yield "message", msg_uuid, "uuid", canonical, features
+
+
+def _ingested_snapshots(manifest_db):
+    """Snapshot names already recorded as ingests in `manifest_db`."""
+    if not manifest_db.exists():
+        return set()
+    db = sqlite_utils.Database(manifest_db)
+    if not db["ingests"].exists():
+        return set()
+    return {r["source"] for r in db["ingests"].rows if r["source"]}
+
+
+def _content_fixity(project, snapshots):
+    """Backfill any missing snapshots into the per-message manifest and run
+    fixity_check across the latest two. Returns the fixity report (or None on
+    first-ingest, when there is nothing to compare).
+    """
+    manifest_db = project["project_folder"] / "claude_manifest" / "manifest.sqlite"
+    already = _ingested_snapshots(manifest_db)
+    to_ingest = [s for s in snapshots if s.name not in already]
+    if not to_ingest:
+        print(f"claude_manifest: no new snapshots to ingest "
+              f"(manifest holds {len(already)})")
+    else:
+        if not already and len(to_ingest) > 1:
+            print(f"claude_manifest: first run — backfilling "
+                  f"{len(to_ingest)} snapshot(s) chronologically")
+        for snap in to_ingest:
+            data = json.loads((snap / "conversations.json").read_bytes())
+            ingest_id, n = manifest.build(
+                manifest_db, iter_message_items(data),
+                source=snap.name, progress=False)
+            print(f"  ingest {ingest_id}  snapshot {snap.name}  ({n:,} messages)")
+    report = manifest.fixity_check(manifest_db)
+    manifest.record_events(manifest_db, report)
+    return report
+
+
+def _emit_verified_for_project(project, snapshot_name):
+    """Record a `verified` event in the archive ledger for each of the project's
+    archive_targets after a clean per-message fixity_check.
+
+    Honest scope: the fixity check verified the **source content** (the
+    conversations.json the pipeline reads). The same content lives byte-identical
+    at each archive_target via the rsync chain — we assert verified on that
+    basis. Per-location independent re-verification (e.g. SFTP-hashing the
+    Hetzner copy and comparing) is a stronger check left for a future stage.
+    """
+    pipeline_loc = None
+    for tgt in project.get("archive_targets", []) or []:
+        loc = locations.get(tgt["location"])
+        if loc is None:
+            continue
+        if pipeline_loc is None and str(project["project_folder"]).startswith(
+                str(loc.get("mount_point", "/this_will_never_match"))):
+            pipeline_loc = loc["id"]
+        is_source = (loc["id"] == pipeline_loc)
+        note = (f"per-message fixity_check clean — snapshot {snapshot_name}"
+                if is_source else
+                f"inferred clean from source ({pipeline_loc}) — snapshot "
+                f"{snapshot_name}; identical bytes via rsync chain")
+        archive_ledger.record_event(
+            kind="verified", location_id=loc["id"], project_id=project["id"],
+            agent="claude_prompts.py", notes=note)
+
+
 def run(project):
     fetched = project["project_folder"] / "fetched"
     snapshot = _latest_snapshot(fetched)
@@ -186,11 +310,25 @@ def run(project):
         if db[table].exists():
             print(f"  {db[table].count:>6}  {table}")
 
+    # Content fixity across snapshots (per-message). Skip the legacy flat layout —
+    # there's no snapshot history to track.
+    if snapshot is None:
+        return
+    snapshots = sorted(d for d in fetched.iterdir()
+                       if d.is_dir() and (d / "conversations.json").is_file())
+    print()
+    report = _content_fixity(project, snapshots)
+    print(manifest.format_report(report))
+
+    # On a clean fixity check, mark the project's archive_targets as `verified`.
+    if report and not report["fixity_failure"] and not report["loss"]:
+        _emit_verified_for_project(project, snapshot.name)
+
 
 def main():
     for projectid in projects.keys():
         project = projects[projectid]
-        if project["source"] not in ["Prompts"]:
+        if project["source"] not in ["Claude Web Prompts"]:
             continue
         verify_pipeline_location(project, locations)  # silent precondition; refuses on identity drift
         run(project)

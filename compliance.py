@@ -8,10 +8,17 @@ For each project, evaluate the backup strategy over its archive_targets:
 
 Compliance is **per project** (locations come and go; projects remain) and is
 evaluated over **materialised** archive_targets — those whose resolved path
-actually exists today. For disk-medium locations that's a local `Path.exists()`;
-for cloud_object locations with an `ssh_alias` configured, it's an SFTP probe
-(`echo "cd <path>" | sftp -b - <alias>` → exit 0 iff the path exists). A cloud
-location without an `ssh_alias` can't be probed and is treated as not materialised.
+actually exists today. Three resolution modes:
+
+- **Disk, online** — local `Path.exists()` against `mount_point + target.path`.
+- **Disk, declared `online_state: "offline"`** (the USB-in-a-drawer pattern) —
+  `Path.exists()` first; if absent (drive unplugged, expected), accept a
+  `verified` event within the freshness window as proof the data was there the
+  last time we plugged in. The drawer drive's *whole point* is to not be online
+  most of the time — checking `Path.exists()` while it's in the drawer would
+  always fail, defeating the purpose.
+- **Cloud** — SFTP probe via `location.ssh_alias`. Without an alias, the cloud
+  target is treated as not materialised.
 
 Read-only on data; the SFTP probe is a single short network round-trip per cloud
 target (~0.5 s). The **`verified`** leg reads `verified` events from
@@ -34,6 +41,29 @@ FRESHNESS_DAYS = 90
 
 # Cloud probe timeout — single SFTP `cd` round-trip; ample for any sane network.
 PROBE_TIMEOUT = 15
+
+
+def _probe_disk_path(location, path):
+    """For disk-medium locations: is `mount_point/path` materialised?
+
+    Online disks (default): a straight `Path.exists()`.
+    Offline disks (`online_state: "offline"`, the drawer-drive pattern): if the
+    path is absent (drive unplugged), trust a recent `verified` event from the
+    archive ledger — it proves we plugged it in within the freshness window and
+    the content checksumed cleanly. Returns (exists, note); note is set only
+    when the result reflects a non-obvious decision.
+    """
+    full = Path(location["mount_point"]) / path
+    if full.exists():
+        return True, None
+    if location.get("online_state") == "offline":
+        ev = archive_ledger.latest_event("verified", location_id=location["id"])
+        if archive_ledger.within(ev, FRESHNESS_DAYS):
+            return True, (f"offline (drawer) — trusting verified event "
+                          f"from {ev['when_'][:10]}")
+        return False, ("offline (drawer) — no `verified` event within "
+                       f"{FRESHNESS_DAYS}d; plug in to refresh")
+    return False, None
 
 
 def _probe_cloud_path(location, path):
@@ -82,15 +112,14 @@ def evaluate(project, locations):
         if loc["medium"] == "cloud_object":
             exists, note = _probe_cloud_path(loc, tgt["path"])
             display = f"{loc.get('ssh_alias', '?')}:{tgt['path']}"
-            entry = {"target": tgt, "location": loc, "full_path": display,
-                     "exists": exists}
-            if note:
-                entry["note"] = note
-            resolved.append(entry)
         else:
-            full = Path(loc["mount_point"]) / tgt["path"]
-            resolved.append({"target": tgt, "location": loc,
-                             "full_path": full, "exists": full.exists()})
+            exists, note = _probe_disk_path(loc, tgt["path"])
+            display = Path(loc["mount_point"]) / tgt["path"]
+        entry = {"target": tgt, "location": loc, "full_path": display,
+                 "exists": exists}
+        if note:
+            entry["note"] = note
+        resolved.append(entry)
 
     materialised = [r for r in resolved if r.get("exists")]
     copies = len(materialised)

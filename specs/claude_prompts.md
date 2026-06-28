@@ -1,4 +1,4 @@
-# Claude Prompts
+# Claude Web Prompts
 
 ## Purpose
 
@@ -34,7 +34,7 @@ export is detectable.
 
 ### Selection
 
-1. Process each project whose `source` is `Prompts`.
+1. Process each project whose `source` is `Claude Web Prompts`.
 2. Read `conversations.json` from the **latest** snapshot — the snapshot folder that
    sorts last. If there are no snapshot folders, fall back to a flat
    `fetched/conversations.json` (the legacy layout).
@@ -57,9 +57,48 @@ export is detectable.
    two databases came from the same export, and to notice a `conversations.json` that
    changed under a given snapshot.
 
+### Content fixity across snapshots
+
+1. After conversion, an append-only **per-message manifest** is maintained at
+   `<project>/claude_manifest/manifest.sqlite` — each snapshot becomes one
+   `ingests` row (keyed by snapshot name in the `source` field), and each message
+   becomes one `items` row with locator = `message_uuid` and checksum = SHA-256
+   over canonical-JSON of the message body (`sender`, `text`, `content`,
+   `attachments`, `files`, `created_at`, `updated_at`). Features capture
+   contextual fields that may legitimately change (`conversation_uuid`,
+   `conversation_name`, `position`, `sender`).
+2. On a run with un-ingested snapshots, the manifest is back-filled
+   chronologically so that the latest two ingests are always comparable.
+3. [`manifest.fixity_check`](fixity.md) is then run on the two latest ingests
+   (= the two most recent snapshots). The classes carry their normal meanings:
+   - `unchanged` — message was preserved byte-for-byte between snapshots.
+   - `added` — message new in the latest snapshot. **This is how growth shows up**
+     — new conversations or new messages in active chats. Not an alarm.
+   - `fixity_failure` — same `message_uuid`, *different* canonical content. The
+     server edited an old message. **Alarm.**
+   - `dropped` / `loss` — `message_uuid` gone in the latest snapshot. The server
+     deleted a message (or a whole conversation). **Alarm.**
+4. Per-message granularity is deliberate: a per-*conversation* checksum would
+   flag every still-active chat as `fixity_failure` on every snapshot, drowning
+   real tampering signal in normal growth.
+
+### Verified events to the archive ledger
+
+1. On a clean fixity check (no `fixity_failure`, no `loss`), a **`verified`**
+   event is appended to `~/selfhosted/archive/archive.sqlite/events` for **every
+   archive_target** declared on the project — so [`compliance`](locations.md)'s
+   `verified` leg (the "**0** errors" of 3-2-1-1-0) can close.
+2. Honest scope: this check verifies the **source** content (the conversations.json
+   the pipeline reads). Other archive_targets are recorded as verified by
+   inference — same bytes, propagated via the rsync chain. The `notes` field on
+   each event distinguishes the source from the inferred. Per-location
+   independent re-verification (e.g. SFTP-hashing the Hetzner copy and comparing
+   against the source SHA-256) is a stronger check that would close the leg
+   without the inference; treated as a future stage.
+
 ## Inputs
 
-- A `Prompts` project with one or more export snapshots under `fetched/` (or a legacy
+- A `Claude Web Prompts` project with one or more export snapshots under `fetched/` (or a legacy
   flat `fetched/conversations.json`).
 
 ## Outputs
@@ -67,6 +106,13 @@ export is detectable.
 - `<project_folder>/claude_prompts/conversations.sqlite` — the conversation tables and
   their FTS indexes, plus a one-row `export` provenance table `(snapshot, sha256,
   algorithm, size_bytes, conversation_count, exported_at, imported_at)`.
+- `<project_folder>/claude_manifest/manifest.sqlite` — append-only per-message
+  manifest, one ingest row per snapshot, items keyed by `message_uuid`. Drives the
+  content-fixity check.
+- A printed fixity report after each run (`added`, `unchanged`, `fixity_failure`,
+  `dropped`, `loss`, etc., between the latest two snapshots).
+- On clean fixity: `verified` events in `~/selfhosted/archive/archive.sqlite/events`
+  for each of the project's archive_targets.
 
 ## Constraints
 
