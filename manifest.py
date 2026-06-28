@@ -163,6 +163,44 @@ def build(db_path, items, *, source=None, limit=None, total=None, workers=1, pro
     db_path = Path(db_path)
     db_path.parent.mkdir(parents=True, exist_ok=True)
     db = sqlite_utils.Database(db_path)
+
+    # Create ingests table if it doesn't exist
+    if "ingests" not in db.table_names():
+        db["ingests"].create(
+            {
+                "id": int,
+                "source": str,
+                "run_at": str,
+                "algorithm": str,
+                "item_limit": int,
+                "item_count": int,
+            },
+            pk="id",
+        )
+
+    # Create items table if it doesn't exist
+    if "items" not in db.table_names():
+        db["items"].create(
+            {
+                "ingest_id": int,
+                "seq": int,
+                "kind": str,
+                "locator": str,
+                "locator_kind": str,
+                "checksum": str,
+                "algorithm": str,
+                "size": int,
+                "features": str,  # JSON string of features
+            },
+            pk=("ingest_id", "seq"),  # Composite primary key
+        )
+
+        # Create indexes if they don't exist
+        db["items"].create_index(["checksum"], if_not_exists=True)
+        db["items"].create_index(["locator"], if_not_exists=True)
+        db["items"].create_index(["ingest_id"], if_not_exists=True)
+
+    # Rest of your existing code...
     ingest_id = db["ingests"].insert(
         {"source": source,
          "run_at": datetime.now(timezone.utc).isoformat(),
@@ -170,17 +208,25 @@ def build(db_path, items, *, source=None, limit=None, total=None, workers=1, pro
          "item_limit": limit,
          "item_count": 0},  # set below; 0 (not None) so the column is INTEGER
         pk="id").last_pk
+
     if limit is not None:
         items = islice(items, limit)
+
     rows = _rows(items, ingest_id, workers=workers)
     if progress:
         caps = [c for c in (total, limit) if c is not None]
         rows = _with_progress(rows, total=min(caps) if caps else None, label=source or "")
+
+    # Insert items with the ingest_id
     db["items"].insert_all(rows, pk=("ingest_id", "seq"))  # streams in batches
-    count = db["items"].count_where("ingest_id = ?", [ingest_id])
+
+    # Count items for this ingest using the index on ingest_id
+    # We need to use a different approach since we can't use count_where directly
+    # with the composite primary key
+    count = db.execute("SELECT COUNT(*) FROM items WHERE ingest_id = ?", [ingest_id]).fetchone()[0]
+
     db["ingests"].update(ingest_id, {"item_count": count})
-    for col in ("checksum", "locator", "ingest_id"):
-        db["items"].create_index([col], if_not_exists=True)
+
     return ingest_id, count
 
 

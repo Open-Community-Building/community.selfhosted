@@ -53,11 +53,11 @@ metadata:
     - python photos_metadata.py
   deps:
     - path: photos_metadata.py
-      md5: ab56c42c914c1722f01714b7f057e3e7
+      md5: 4786773c334697829fa354658153be00
     - path: project_registry.py
-      md5: 2e06ae4ff9e7a87210fdf3bdcc2a4f05
+      md5: eccc61ebd1fa18ddd8e6f5d1efd53eae
     - path: config.cfg
-      md5: 218b9090c596d20368c68201407fabd4
+      md5: 58d64ee0c7d1ab1a0fe25c90c961251f
   outs: []
 git_logs:
   cmd: python -m weasel run git_logs
@@ -89,13 +89,13 @@ manifest:
     - python photos_manifest.py
   deps:
     - path: photos_manifest.py
-      md5: a606f848571677ad6fc925d095a0f955
+      md5: b8d83794a6d11a126e6dac962aa963c2
     - path: manifest.py
-      md5: be14cee78d05f76c6a81e1fc8bb88644
+      md5: d8953fa43f4be3c0bec8014df67a3560
     - path: project_registry.py
-      md5: 2e06ae4ff9e7a87210fdf3bdcc2a4f05
+      md5: eccc61ebd1fa18ddd8e6f5d1efd53eae
     - path: config.cfg
-      md5: 218b9090c596d20368c68201407fabd4
+      md5: 58d64ee0c7d1ab1a0fe25c90c961251f
   outs: []
 stats:
   cmd: python -m weasel run stats
@@ -103,11 +103,11 @@ stats:
     - python photos_stats.py
   deps:
     - path: photos_stats.py
-      md5: c3eff9bfa01b2c852536912a576394f6
+      md5: 303a4602804a5c4a7c300a444fdf75a7
     - path: project_registry.py
-      md5: 2e06ae4ff9e7a87210fdf3bdcc2a4f05
+      md5: eccc61ebd1fa18ddd8e6f5d1efd53eae
     - path: config.cfg
-      md5: 218b9090c596d20368c68201407fabd4
+      md5: 58d64ee0c7d1ab1a0fe25c90c961251f
   outs: []
 verify_identity:
   cmd: python -m weasel run verify_identity
