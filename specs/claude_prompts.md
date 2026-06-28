@@ -26,7 +26,7 @@ export is detectable.
 
 ### Snapshots
 
-1. Snapshots are produced by [Claude Ingest](claude_web_ingest.md): a raw export dropped
+1. Snapshots are produced by [Claude Web Ingest](claude_web_ingest.md): a raw export dropped
    in `claude_web_ingest/` becomes `fetched/<YYYY-MM-DD-HH-MM>/conversations.json`, the folder
    named from the export's embedded epoch (UTC), so folders sort chronologically.
 2. Snapshots are immutable and hold only `conversations.json`; the raw zip stays in
