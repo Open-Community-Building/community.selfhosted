@@ -11,13 +11,13 @@ import json
 import os
 import sys
 from pathlib import Path
-from pprint import pprint
 
 import spacy
 from confection import Config
 
 DEFAULT_CONFIG = Path(__file__).with_name("config.cfg")
 LOCATIONS_ROOT = Path("~/selfhosted/locations").expanduser()
+PROJECTS_ROOT = Path("~/selfhosted/projects").expanduser()
 
 
 @spacy.registry.misc("photo_projects.discover.v1")
@@ -130,4 +130,12 @@ def select_projects(argv=None, projects=None) -> dict:
 
 
 if __name__ == "__main__":
-    pprint(select_projects())
+    print("# Project Registry", file=sys.stderr)
+    print()
+    print(f"Projects (Configured in {PROJECTS_ROOT})")
+    for key, value in select_projects().items():
+        print(f"    {key}")
+    print()
+    print(f"Locations (Configured in {LOCATIONS_ROOT})")
+    for key, value in select_locations().items():
+        print(f"    {key}: {value['online_state']}")
