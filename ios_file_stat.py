@@ -58,6 +58,9 @@ async def dump(project):
             break
 
     async with AfcService(lockdown) as afc:
+        # Create download directory if it doesn't exist
+        os.makedirs(download_dir, exist_ok=True)
+
         result = {}
         async for root, dirs, files in afc.walk("/"):
             for name in files:
@@ -77,6 +80,7 @@ async def dump(project):
                 rec["mtime"] = as_datetime(st.get("st_mtime"))
                 rec["birthtime"] = as_datetime(st.get("st_birthtime"))
                 result[path] = rec
+        project['dump_pymobiledevice3_files'].parent.mkdir(exist_ok=True)
         json.dump(result, open(project['dump_pymobiledevice3_files'], 'w'), indent=4, ensure_ascii=False, sort_keys=True, default=json_default)
 
 def main():

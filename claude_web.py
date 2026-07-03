@@ -280,16 +280,7 @@ def _emit_verified_for_project(project, snapshot_name):
 def run(project):
     fetched = project["project_folder"] / "fetched"
     snapshot = _latest_snapshot(fetched)
-    conversations_json = (snapshot or fetched) / "conversations.json"
-    if not conversations_json.is_file():
-        print(f"{project['id']}: no conversations.json under {fetched}; skipping")
-        return
-    out = project["project_folder"] / "claude_web" / "conversations.sqlite"
-    out.parent.mkdir(parents=True, exist_ok=True)
-
-    raw = conversations_json.read_bytes()
-    sha256 = hashlib.new(ALGORITHM, raw).hexdigest()
-    data = json.loads(raw)
+    sha256
     print(f"Reading {conversations_json}")
     print(f"  snapshot={snapshot.name if snapshot else '(flat)'}  "
           f"sha256={sha256[:16]}…  {len(raw)} bytes  {len(data)} conversations")

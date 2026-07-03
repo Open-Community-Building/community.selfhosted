@@ -133,3 +133,15 @@ compliance:
     - path: config.cfg
       md5: 58d64ee0c7d1ab1a0fe25c90c961251f
   outs: []
+device_files:
+  cmd: python -m weasel run device_files
+  script:
+    - python ios_file_stat.py
+  deps:
+    - path: ios_file_stat.py
+      md5: 947785607eedc5cba43bb21301432b35
+    - path: project_registry.py
+      md5: eccc61ebd1fa18ddd8e6f5d1efd53eae
+    - path: config.cfg
+      md5: 58d64ee0c7d1ab1a0fe25c90c961251f
+  outs: []

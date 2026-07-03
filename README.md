@@ -99,6 +99,7 @@ spacy project run ensure_dirs     # create each project's fetched/ & processed/ 
 spacy project run compliance      # per-project 3-2-1-1-0 status (read-only)
 spacy project run device_info     # print a connected iOS device's identity, battery, disk
 spacy project run device_files    # dump file stats from a connected iOS device (AFC)
+pymobiledevice3 backup2 backup --full download
 spacy project run md5             # MD5 + size checksum every fetched file
 spacy project run manifest        # ingest → Source Manifest (locator + checksum + features) + fixity report
 spacy project run metadata        # attach Google Takeout metadata (run after md5)
