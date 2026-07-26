@@ -36,6 +36,7 @@ EXTRACTORS = {
     "external_hdd":  "diskutil_apfs",
     "device":        "lockdown",
     "cloud_object":  "declared_host",
+    "other":         "diskutil_other",
 }
 
 # Strong identifiers per medium (the verification policy: any match → pass).
@@ -45,6 +46,7 @@ STRONG_IDS = {
     "external_hdd":  ("volume_uuid", "media_serial"),
     "device":        ("unique_device_id",),
     "cloud_object":  ("host",),
+    "other":         ("volume_uuid", "media_serial"),
 }
 
 
@@ -107,8 +109,62 @@ def _try_usb_serial(whole_disk):
     return None
 
 
+def _is_multi_partition(location):
+    """True when a location declares `partitions` (one physical disk holding
+    more than one volume) rather than a single top-level `mount_point`."""
+    return "partitions" in location
+
+
 def extract_diskutil_apfs(location):
-    """Identifiers for an APFS volume at `location.mount_point`."""
+    """Identifiers for an APFS volume at `location.mount_point`, or -- for a
+    multi-partition location -- one physical disk's `media_serial` (shared,
+    enclosure-level) plus a per-partition `volume_uuid`/`disk_uuid`/`volume_name`
+    for each entry in `location.partitions`."""
+    if _is_multi_partition(location):
+        partitions = {}
+        media_serial = None
+        for name, part in location["partitions"].items():
+            info = _diskutil_plist(part["mount_point"])
+            partitions[name] = {
+                "volume_uuid":  info.get("VolumeUUID"),
+                "disk_uuid":    info.get("DiskUUID"),
+                "volume_name":  info.get("VolumeName"),
+            }
+            if media_serial is None:
+                media_serial = _try_usb_serial(info.get("ParentWholeDisk"))
+        return {"media_serial": media_serial, "partitions": partitions}
+    info = _diskutil_plist(location["mount_point"])
+    return {
+        "volume_uuid":  info.get("VolumeUUID"),
+        "disk_uuid":    info.get("DiskUUID"),
+        "volume_name":  info.get("VolumeName"),
+        "media_serial": _try_usb_serial(info.get("ParentWholeDisk")),
+    }
+
+
+def extract_other(location):
+    """Identifiers for the free-form `other` medium -- e.g. an SD card in a
+    card reader, which has no dedicated closed-enum medium of its own (see
+    specs/locations.md). Real gap found 2026-07-24: `other` was declared in the
+    medium enum from the start but had no entry in `EXTRACTORS` at all, so any
+    project opting into hardware verification (`"location": <other-medium-id>`
+    in config.json) would hit `extract()`'s `RuntimeError` and get treated as
+    `extraction_failed` -- a hard refuse on every single command, not the soft
+    "no identification yet" this medium's free-form nature should produce.
+
+    Same diskutil + USB-ioreg probe as `extract_diskutil_apfs`, deliberately
+    filesystem-agnostic rather than assuming APFS: `diskutil info -plist`
+    returns `VolumeUUID`/`DiskUUID` for many non-APFS filesystems too, but for
+    a bare FAT/exFAT SD card with no real identity exposed by macOS, every
+    field routinely comes back null -- confirmed for real against an actual
+    Samsung SD card via `community.sd_card_file_registry`'s own independent
+    probe (SerialNumber and Model both "Unknown"). `identify()`/`verify()`
+    already treat an all-null strong-identifier set as `no_identification` (a
+    soft warning), never a hard failure, so a card with no exposed hardware
+    identity is an expected, non-blocking outcome here -- not a bug to work
+    around by mislabeling the medium as `external_ssd` just to get a working
+    extractor.
+    """
     info = _diskutil_plist(location["mount_point"])
     return {
         "volume_uuid":  info.get("VolumeUUID"),
@@ -156,6 +212,7 @@ def extract(location):
     name = EXTRACTORS[medium]
     fn = {
         "diskutil_apfs":  extract_diskutil_apfs,
+        "diskutil_other": extract_other,
         "lockdown":       extract_lockdown,
         "declared_host":  extract_declared_host,
     }[name]
@@ -182,6 +239,37 @@ def _match(recorded, live, strong):
     return matched, mismatches
 
 
+def _match_multi(recorded, live):
+    """Compare recorded vs live identifiers for a multi-partition location:
+    the shared enclosure-level `media_serial`, plus each named partition's own
+    `volume_uuid`. Returns (matched, mismatches) shaped like `_match`'s, with
+    partition-scoped keys as `"partitions.<name>.volume_uuid"` so a mismatch
+    names exactly which partition drifted. A partition present on only one
+    side (recorded or live) is skipped, same as a `None` value in `_match`.
+    """
+    matched, mismatches = [], []
+    rec_serial, live_serial = recorded.get("media_serial"), live.get("media_serial")
+    if rec_serial is not None and live_serial is not None:
+        if rec_serial == live_serial:
+            matched.append("media_serial")
+        else:
+            mismatches.append(("media_serial", rec_serial, live_serial))
+    rec_parts, live_parts = recorded.get("partitions", {}), live.get("partitions", {})
+    for name, rec_part in rec_parts.items():
+        live_part = live_parts.get(name)
+        if live_part is None:
+            continue
+        rec_uuid, live_uuid = rec_part.get("volume_uuid"), live_part.get("volume_uuid")
+        if rec_uuid is None or live_uuid is None:
+            continue
+        key = f"partitions.{name}.volume_uuid"
+        if rec_uuid == live_uuid:
+            matched.append(key)
+        else:
+            mismatches.append((key, rec_uuid, live_uuid))
+    return matched, mismatches
+
+
 def verify(location):
     """Check live identifiers against the location's recorded `identification.json`.
 
@@ -202,7 +290,10 @@ def verify(location):
         live = extract(location)
     except Exception as e:
         return "extraction_failed", {"error": str(e)}
-    matched, mismatches = _match(recorded, live, STRONG_IDS[location["medium"]])
+    if _is_multi_partition(location):
+        matched, mismatches = _match_multi(recorded, live)
+    else:
+        matched, mismatches = _match(recorded, live, STRONG_IDS[location["medium"]])
     if not matched and not mismatches:
         # Nothing comparable — every strong id was None on at least one side.
         return "no_identification", {"note": "all strong identifiers null"}
@@ -236,8 +327,11 @@ def identify(location):
         return "established", {"identifiers": live}
 
     recorded_doc = json.loads(ident_path.read_text())
-    matched, mismatches = _match(
-        recorded_doc["identifiers"], live, STRONG_IDS[location["medium"]])
+    if _is_multi_partition(location):
+        matched, mismatches = _match_multi(recorded_doc["identifiers"], live)
+    else:
+        matched, mismatches = _match(
+            recorded_doc["identifiers"], live, STRONG_IDS[location["medium"]])
     if not matched:
         return "drift", {"mismatches": mismatches, "live": live}
     recorded_doc["identifiers"] = live
@@ -325,10 +419,23 @@ def verify_pipeline_location(project, locations):
 STATUS_GLYPH = {
     "match": "✓", "partial": "~", "drift": "✗",
     "no_identification": "?", "extraction_failed": "!",
+    "established": "+", "refreshed": "✓",
 }
 
 
 def main():
+    """Sweep every registered location: verify an already-identified one,
+    establish identity for one that's brand new.
+
+    Real gap found 2026-07-24: this only ever called `verify()`, which reads
+    an existing `identification.json` and never creates one -- so a freshly
+    registered location (a `location.json` with no sibling `identification.json`
+    yet) had no CLI path to actually get identified at all; the only way to
+    populate that file was an ad-hoc one-off script. Now: if a location has no
+    `identification.json`, call `identify()` instead (first-time
+    establishment, live probe against the medium's extractor), and report
+    "established" rather than silently leaving it unidentified.
+    """
     locations = select_locations()
     if not locations:
         print("no locations registered — declare some under ~/selfhosted/locations/")
@@ -338,9 +445,18 @@ def main():
     print(f"{headers[0]:<{widths[0]}}  {headers[1]:<{widths[1]}}  {headers[2]}")
     print("─" * 70)
     for lid, loc in locations.items():
-        status, details = verify(loc)
+        ident_path = loc["location_folder"] / "identification.json"
+        if not ident_path.exists():
+            try:
+                status, details = identify(loc)
+            except Exception as e:
+                status, details = "extraction_failed", {"error": str(e)}
+        else:
+            status, details = verify(loc)
         glyph = STATUS_GLYPH.get(status, " ")
-        if status == "match":
+        if status == "established":
+            detail = f"identity established: {details['identifiers']}"
+        elif status == "match":
             detail = f"matched={','.join(details['matched'])}"
         elif status == "partial":
             detail = (f"matched={','.join(details['matched'])} "

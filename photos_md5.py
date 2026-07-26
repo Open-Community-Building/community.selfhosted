@@ -46,7 +46,7 @@ def process(project, sample):
 def main():
     for projectid in projects.keys():
         project = projects[projectid]
-        if projects[projectid]["source"] not in ["Google Takeout", "AndroidPhotoBackup", "IPad", "IPhone", "MacPictures"]:
+        if projects[projectid]["source"] not in ["Google Takeout", "AndroidPhotoBackup", "IPad", "IPhone", "MacPictures", "GoogleDriveFolderOnMac"]:
             continue
         sample = False
         if (project['project_folder'] / 'photos_md5' / 'md5.json').is_file():

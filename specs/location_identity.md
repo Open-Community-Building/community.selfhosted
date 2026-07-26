@@ -45,7 +45,22 @@ set** of identifiers is read:
 | `device` (iPhone / iPad) | `unique_device_id` (iOS UDID) | `serial_number`, `unique_chip_id` (ECID), `product_type` | `pymobiledevice3` lockdown handshake (the existing [Device Info](ios_identification.md) call) |
 | `cloud_object` (Hetzner Storage Box, S3, …) | `host` (the stable subaccount URL — e.g. `u573272-sub1.your-storagebox.de`) | — | declared in `location.json` (no extractor — the URL itself is the identity) |
 | `optical` / `tape` | `medium_label` + per-disc serial when present | — | best-effort |
-| `other` | free-form | — | declared by the operator |
+| `other` | `volume_uuid`, `media_serial` | `disk_uuid`, `volume_name` | `diskutil info -plist <mount_point>` + USB `ioreg` serial lookup (`diskutil_other`, same probe as the APFS media, deliberately filesystem-agnostic) |
+
+**Real gap closed (2026-07-24):** `other` was declared in the medium enum from the
+start but had no registered extractor at all, so any project opting into hardware
+verification for an `other`-medium location would hit a hard `extraction_failed`
+refuse on every single command — not the soft "no identity recorded yet" this
+medium's free-form nature is supposed to produce. Built `extract_other()`, reusing
+the same diskutil + USB-ioreg probe as APFS media (it was never actually
+APFS-specific — `diskutil info -plist` works against any filesystem `diskutil`
+recognizes, FAT/exFAT included; the strong identifiers just routinely come back
+null for a bare card with no exposed hardware identity, which `identify()`/
+`verify()` already treat as `no_identification`, not a failure). Verified for real
+against a Samsung SD card whose own independent probe
+(`community.sd_card_file_registry`) had already found Unknown/Unknown for serial
+and model: `identify()` now establishes a real (if mostly-null) identification.json
+instead of the project refusing to run at all.
 
 `volume_name` for disks is **informational only** — it is exactly what collides
 between same-named volumes, so it is never used for matching.
@@ -65,7 +80,15 @@ matches — surviving a reformat (`media_serial` persists) *or* a USB-enclosure 
    - Cloud objects — no extractor; the strong identifier (`host`) is declared in
      `location.json` and copied into `identification.json` for shape uniformity.
 3. The first-time identification creates `identification.json` from scratch and
-   prints `establishing identity for <id>`.
+   prints `establishing identity for <id>`. **Real gap closed (2026-07-24):**
+   `weasel run verify_identity` previously only ever called `verify()` (reads an
+   existing file, never creates one) for every registered location — so a
+   freshly registered location had no CLI path to actually get identified at
+   all, only an ad-hoc one-off script. `main()` now checks each location for a
+   missing `identification.json` first and calls `identify()` instead in that
+   case, so registering a brand-new location and running
+   `weasel run verify_identity` (with its medium mounted/connected) is now
+   sufficient on its own to establish it for real.
 4. **Re-identification**: when run again, the new read is accepted only if **at
    least one** recorded strong identifier still matches; the file is then
    overwritten with the fresh read (so non-strong fields can update). All

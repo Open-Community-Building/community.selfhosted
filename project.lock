@@ -115,7 +115,7 @@ verify_identity:
     - python location_identity.py
   deps:
     - path: location_identity.py
-      md5: d4f9877cef06926d76eab8df4b3c5c74
+      md5: 81cc312b7856cc7761850c8c462947a5
     - path: project_registry.py
       md5: eccc61ebd1fa18ddd8e6f5d1efd53eae
     - path: config.cfg

@@ -43,7 +43,30 @@ FRESHNESS_DAYS = 90
 PROBE_TIMEOUT = 15
 
 
-def _probe_disk_path(location, path):
+def _resolve_mount_point(location, target):
+    """A location's mount point for `target` -- either the single `mount_point`
+    (most locations), or, for a multi-partition location (one physical disk
+    holding more than one volume, declared via `partitions` in location.json),
+    the mount_point of the partition the target names.
+    """
+    if "partitions" not in location:
+        return location["mount_point"]
+    partition = target.get("partition")
+    if not partition:
+        raise ValueError(
+            f"archive_target for location {location['id']!r} must declare "
+            f"'partition' (one of {sorted(location['partitions'])}) -- this "
+            f"location holds more than one volume"
+        )
+    if partition not in location["partitions"]:
+        raise ValueError(
+            f"unknown partition {partition!r} for location {location['id']!r} "
+            f"-- known partitions: {sorted(location['partitions'])}"
+        )
+    return location["partitions"][partition]["mount_point"]
+
+
+def _probe_disk_path(location, path, mount_point):
     """For disk-medium locations: is `mount_point/path` materialised?
 
     Online disks (default): a straight `Path.exists()`.
@@ -53,7 +76,7 @@ def _probe_disk_path(location, path):
     the content checksumed cleanly. Returns (exists, note); note is set only
     when the result reflects a non-obvious decision.
     """
-    full = Path(location["mount_point"]) / path
+    full = Path(mount_point) / path
     if full.exists():
         return True, None
     if location.get("online_state") == "offline":
@@ -113,8 +136,13 @@ def evaluate(project, locations):
             exists, note = _probe_cloud_path(loc, tgt["path"])
             display = f"{loc.get('ssh_alias', '?')}:{tgt['path']}"
         else:
-            exists, note = _probe_disk_path(loc, tgt["path"])
-            display = Path(loc["mount_point"]) / tgt["path"]
+            try:
+                mount_point = _resolve_mount_point(loc, tgt)
+            except ValueError as exc:
+                resolved.append({"target": tgt, "exists": False, "note": str(exc)})
+                continue
+            exists, note = _probe_disk_path(loc, tgt["path"], mount_point)
+            display = Path(mount_point) / tgt["path"]
         entry = {"target": tgt, "location": loc, "full_path": display,
                  "exists": exists}
         if note:

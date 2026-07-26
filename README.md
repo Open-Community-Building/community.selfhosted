@@ -40,12 +40,20 @@ Specs live in the `specs/` directory and are the source of truth for system beha
 | [Locations](specs/locations.md)                  | Live | Registry of storage locations with copy role / medium / site / online state — 3-2-1-1-0 evaluated per project                                  |
 | [Location Identity](specs/location_identity.md)  | Draft | Per-medium hardware identification (Volume UUID / iOS UDID / SSH host key) — fixity for the storage container, generalising the iOS UDID match |
 | [Dissemination](specs/dissemination.md)          | Draft | Build per-audience DIPs (self/family/friends/project/public) as BagIt bags, deliver via SFTP to Hetzner Storage Box subaccounts                |
+| [Archival Integrity](specs/archival-integrity.md) | Live | Deletion of original/source files and alteration of archival artifacts are no-go for automated tooling — see [ADR-0001](adr/0001-original-system-deletion-and-artifact-alteration-are-no-go.md) |
+
+## Architecture Decision Records
+
+Alongside `specs/` (what the system does), `adr/` is an append-only log of
+*why* a significant boundary was decided the way it was — see
+[adr/README.md](adr/README.md) for the convention and the current log.
 
 ## Project Structure
 
 ```
 community.selfhosted/
 ├── specs/                # Specifications — source of truth
+├── adr/                  # Architecture Decision Records — append-only, why not what
 │
 ├── project.yml           # Weasel / spaCy-projects workflow: commands + pipelines
 ├── config.cfg            # Declarative configuration (projects root), resolved by spaCy's config system

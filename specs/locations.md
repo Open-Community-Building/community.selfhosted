@@ -48,8 +48,15 @@ role, and verification state.
      immutable** check
    - `mount_point` — declared path where the bits are accessible when online
      (not auto-discovered from `/Volumes`; declared so a missing mount surfaces
-     as a configuration fact, not a guess)
-   - `capacity_bytes` — optional
+     as a configuration fact, not a guess). **A physical medium holding more
+     than one volume** (e.g. an external HDD with two partitions) declares
+     `partitions: {<name>: {mount_point, volume_name}, …}` instead of a single
+     top-level `mount_point` — one location per physical disk, not per
+     partition (see the granularity decision below). A project's
+     `archive_targets` entry for such a location must then also name which
+     `partition` it lives on, alongside `location` and `path`.
+   - `capacity_bytes` — optional; for a multi-partition location, the whole
+     enclosure's capacity, not any one partition's
    - `acquired_at` — when the medium entered service
    - `history` — free-text custodial history (origin, transfers, why it exists)
    - `access_tier` — see [Dissemination](dissemination.md); constrains which
@@ -69,7 +76,11 @@ role, and verification state.
    the data on it. See [Location Identity](location_identity.md). The
    `mount_point` declared in `location.json` becomes binding only via this
    verification check; mount_point + volume name alone are not trustworthy
-   (USB volumes with colliding names mount in arbitrary order).
+   (USB volumes with colliding names mount in arbitrary order). For a
+   multi-partition location, `identification.json` records one shared,
+   enclosure-level `media_serial` plus a per-partition `volume_uuid` (each
+   partition is its own APFS container, so its `volume_uuid` is genuinely
+   distinct; the physical enclosure's serial is not).
 
 ### Per-project source links
 
@@ -191,10 +202,17 @@ project, with locations the means by which it's met.
 
 ## Open Questions
 
-- **Location granularity**: one location per *physical medium* (an external HDD
-  with two partitions is one location) or per *mount-point* (each partition is
-  its own)? Per-medium matches PREMIS *storage* most closely; per-mount-point is
-  simpler to declare. Leaning per-medium.
+- ~~**Location granularity**~~ — **Decided 2026-07-20: per physical medium.**
+  A real case forced the question: `openheidelberg_hdd` and a newly-registered
+  `maik_backup2026_hdd` turned out to be two partitions of the same physical
+  disk (discovered via an identical `media_serial` with differing
+  `volume_uuid`s). Modeling them as two locations would have double-counted a
+  single point of failure as two independent copies/media for 3-2-1-1-0
+  compliance. Merged into one `openheidelberg_hdd` location with a `partitions`
+  dict (see Location registry above); `archive_targets` referencing it now also
+  declare `partition`. `location_identity.py` and `compliance.py` both handle
+  this shape alongside the plain single-`mount_point` shape most locations
+  still use.
 - **`verified` event payload**: just `{status, when}`, or also a count of items
   re-checksummed and any failures? (Detail also lives in `manifest.fixity_events`,
   so this is a redundancy decision.)
