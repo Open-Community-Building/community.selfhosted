@@ -158,3 +158,12 @@ commands:
       - "git_logs.py"
       - "project_registry.py"
       - "config.cfg"
+
+  - name: "lostintranslation_dump"
+    help: "Mirror LostInTranslation's own Storage Box data (every declared shard plus the AI Coach's permanent call log) into fetched/, via the community.storagebox_dump package. See specs/lostintranslation_storagebox_dump.md."
+    script:
+      - "${vars.python} lostintranslation_dump.py"
+    deps:
+      - "lostintranslation_dump.py"
+      - "project_registry.py"
+      - "config.cfg"

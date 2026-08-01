@@ -8,7 +8,8 @@
 #
 #     python -m venv .venv && source .venv/bin/activate
 #     pip install -r requirements.txt
-#     pip install -e ../community.memex   # for the `gmail_sqlite` command
+#     pip install -e ../community.memex          # for the `gmail_sqlite` command
+#     pip install -e ../community.storagebox_dump  # for the `lostintranslation_dump` command
 #
 # Bump a pin only after re-running the pipeline against it.
 

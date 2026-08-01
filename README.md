@@ -41,6 +41,7 @@ Specs live in the `specs/` directory and are the source of truth for system beha
 | [Location Identity](specs/location_identity.md)  | Draft | Per-medium hardware identification (Volume UUID / iOS UDID / SSH host key) — fixity for the storage container, generalising the iOS UDID match |
 | [Dissemination](specs/dissemination.md)          | Draft | Build per-audience DIPs (self/family/friends/project/public) as BagIt bags, deliver via SFTP to Hetzner Storage Box subaccounts                |
 | [Archival Integrity](specs/archival-integrity.md) | Live | Deletion of original/source files and alteration of archival artifacts are no-go for automated tooling — see [ADR-0001](adr/0001-original-system-deletion-and-artifact-alteration-are-no-go.md) |
+| [LostInTranslation Storage Box Dump](specs/lostintranslation_storagebox_dump.md) | Draft | Mirror the LostInTranslation app's own Storage Box uploads (every shard, plus the AI Coach's permanent call log) into `fetched/`, via the companion `community.storagebox_dump` package |
 
 ## Architecture Decision Records
 
@@ -77,7 +78,8 @@ community.selfhosted/
 ├── claude_web_ingest.py      # Unpack Claude export zips → fetched/<utc>/conversations.json
 ├── claude_web.py     # Latest Claude snapshot    → conversations.sqlite (+ SHA-256)
 ├── gmail_sqlite.py       # Google Takeout mbox       → gmail.sqlite (via memex)
-└── git_logs.py           # Git commit history        → git.sqlite (append-only; flags rewrites)
+├── git_logs.py           # Git commit history        → git.sqlite (append-only; flags rewrites)
+└── lostintranslation_dump.py  # App's own Storage Box uploads → fetched/<base>/LostInTranslation/ (via storagebox_dump)
 ```
 
 ## Getting Started
@@ -89,6 +91,10 @@ Photo projects live under `~/selfhosted/photos/projects/`; each folder has a
 
 > The `gmail_sqlite` command delegates to the companion **community.memex** package.
 > Install it into the same environment — `pip install -e ../community.memex`
+>
+> The `lostintranslation_dump` command delegates to the companion
+> **community.storagebox_dump** package. Install it into the same environment —
+> `pip install -e ../community.storagebox_dump`
 
 ```bash
 source ~/selfhosted/.venv/bin/activate
@@ -115,6 +121,7 @@ spacy project run stats           # counts / sizes / type breakdown (run after m
 spacy project run gmail_sqlite    # Google Takeout mbox → SQLite via `memex`
 spacy project run claude_web_ingest   # unpack new Claude export zips: claude_web_ingest/ → fetched/<utc>/conversations.json
 spacy project run claude_web  # convert the latest Claude snapshot → conversations.sqlite (+ SHA-256 provenance)
+spacy project run lostintranslation_dump  # mirror the app's own Storage Box uploads → fetched/<base>/LostInTranslation/
 ```
 
 ### Restrict to one project

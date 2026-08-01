@@ -145,3 +145,15 @@ device_files:
     - path: config.cfg
       md5: 58d64ee0c7d1ab1a0fe25c90c961251f
   outs: []
+lostintranslation_dump:
+  cmd: python -m weasel run lostintranslation_dump
+  script:
+    - python lostintranslation_dump.py
+  deps:
+    - path: lostintranslation_dump.py
+      md5: 69a65c489adbf19303d2249347eafa44
+    - path: project_registry.py
+      md5: eccc61ebd1fa18ddd8e6f5d1efd53eae
+    - path: config.cfg
+      md5: 58d64ee0c7d1ab1a0fe25c90c961251f
+  outs: []
